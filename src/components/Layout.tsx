@@ -24,12 +24,18 @@ export default function Layout({ children, title = '支付委托演示' }: Layou
       }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ margin: 0 }}>支付委托演示</h2>
-          <nav>
-            <Link href="/" style={{ color: 'white', marginRight: '15px' }}>
+          <nav style={{ display: 'flex', gap: '15px' }}>
+            <Link href="/" style={{ color: 'white', textDecoration: 'none' }}>
               首页
             </Link>
-            <Link href="/advanced" style={{ color: 'white' }}>
-              高级版
+            <Link href="/direct-payment" style={{ color: 'white', textDecoration: 'none' }}>
+              直接支付
+            </Link>
+            <Link href="/meta-transaction" style={{ color: 'white', textDecoration: 'none' }}>
+              Meta Transaction
+            </Link>
+            <Link href="/vault-operations" style={{ color: 'white', textDecoration: 'none' }}>
+              金库操作
             </Link>
           </nav>
         </div>
@@ -45,7 +51,7 @@ export default function Layout({ children, title = '支付委托演示' }: Layou
         color: '#888'
       }}>
         <div className="container">
-          <p>© {new Date().getFullYear()} 支付委托演示 - 使用MetaMask和EIP-712签名</p>
+          <p>© {new Date().getFullYear()} 支付委托演示 - 基于重构架构的Web3支付解决方案</p>
         </div>
       </footer>
     </>
