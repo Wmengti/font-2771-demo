@@ -1,9 +1,0 @@
-{
-  "/_app": "pages/_app.js",
-  "/_error": "pages/_error.js",
-  "/_document": "pages/_document.js",
-  "/meta-transaction": "pages/meta-transaction.js",
-  "/vault-operations": "pages/vault-operations.js",
-  "/": "pages/index.js",
-  "/direct-payment": "pages/direct-payment.js"
-}
