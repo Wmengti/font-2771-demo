@@ -73,7 +73,7 @@ export default function VaultOperations() {
         const config = {
           useMetaMask: true,  // 确保设置为true
           publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          contractAddress: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332'
+          contractAddress: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA'
         };
         
         // 创建服务实例
@@ -306,7 +306,7 @@ export default function VaultOperations() {
     setError('');
     try {
       // 调用合约查询余额
-      const vaultAddress = '0x97169867AC7DD5ca2fb506d335EA940D89695E4F'; // UnifiedVault地址
+      const vaultAddress = '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14'; // UnifiedVault地址
       const abi = [{"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"address","name":"token","type":"address"}],"name":"getUserBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
       
       const balance = await services.blockchainService.readContract(

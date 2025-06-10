@@ -93,7 +93,7 @@ const address = await paymentDelegate.connectWallet();
 // 处理转账
 const transferParams = {
   tokenAddress: '0x7A135109F5aAC103045342237511ae658ecFc1A7', // 可选，为空表示ETH
-  to: '0x97169867AC7DD5ca2fb506d335EA940D89695E4F',
+  to: '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14',
   amount: BigInt('50000000000000000000'),
   gasFee: BigInt('1000100000000000000'),
   seq: BigInt(Math.floor(Date.now() / 1000))

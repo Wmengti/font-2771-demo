@@ -29,7 +29,7 @@ export default function MerchantManagement() {
           const config = { 
             useMetaMask: true,
             publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-            contractAddress: '0x97169867AC7DD5ca2fb506d335EA940D89695E4F'
+            contractAddress: '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14'
           };
           const manager = new MerchantManager(config);
           setMerchantManager(manager);

@@ -23,7 +23,7 @@ export default function Home() {
         const config = { 
           useMetaMask: true,  // 确保设置为true
           publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          contractAddress: '0x97169867AC7DD5ca2fb506d335EA940D89695E4F'
+          contractAddress: '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14'
         };
         
         // 直接使用配置创建BlockchainService
@@ -80,7 +80,7 @@ export default function Home() {
       if (services?.txService) {
         const transferParams = {
           tokenAddress: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          to: '0x97169867AC7DD5ca2fb506d335EA940D89695E4F',
+          to: '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14',
           amount: BigInt('50000000000000000000'),
         };
         
@@ -202,7 +202,8 @@ export default function Home() {
               display: 'inline-block',
               textDecoration: 'none',
               color: 'white',
-              width: '100%'
+              width: '100%',
+              backgroundColor: '#722ed1'
             }}>
               商家管理
             </Link>

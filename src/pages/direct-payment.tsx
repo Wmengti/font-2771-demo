@@ -12,7 +12,7 @@ export default function DirectPayment() {
     tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
     to: '0xa8666442fA7583F783a169CC9F5449ec660295E8',
     amount: '50000000000000000000', // 50 tokens
-    spender: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332', // 合约地址作为spender
+    spender: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA', // 合约地址作为spender
     seq: ''
   });
 
@@ -30,7 +30,7 @@ export default function DirectPayment() {
         const config = {
           useMetaMask: true,  // 确保设置为true
           publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          contractAddress: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332'
+          contractAddress: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA'
         };
         
         // 直接使用WalletService作为第一个参数

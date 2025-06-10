@@ -27,12 +27,22 @@ export default function Payment() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [services, setServices] = useState<any>(null);
+  // 添加授权状态
+  const [allowanceStatus, setAllowanceStatus] = useState<{
+    checked: boolean;
+    sufficient: boolean;
+    value: string;
+  }>({
+    checked: false,
+    sufficient: false,
+    value: '0'
+  });
   
   const [formParams, setFormParams] = useState({
     tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
     to: '0xa8666442fA7583F783a169CC9F5449ec660295E8',
     amount: '50000000000000000000', // 50 tokens
-    spender: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332', // 合约地址作为spender
+    spender: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA', // 合约地址作为spender
     seq: String(Math.floor(Date.now() / 1000)),
     deadlineSeconds: '3600' // 1小时过期时间
   });
@@ -63,7 +73,7 @@ export default function Payment() {
         const config = {
           useMetaMask: true,  // 确保设置为true
           publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          contractAddress: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332'
+          contractAddress: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA'
         };
         
         // 创建区块链服务
@@ -148,7 +158,7 @@ export default function Payment() {
     }
   };
 
-  const handleDirectPay = async () => {
+  const checkAllowance = async () => {
     if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
@@ -157,6 +167,84 @@ export default function Payment() {
     setLoading(true);
     setError('');
     try {
+      const allowance = await services.txService.checkAllowance(
+        formParams.tokenAddress,
+        address,
+        formParams.spender
+      );
+      
+      const allowanceStr = allowance.toString();
+      const isAllowanceSufficient = BigInt(allowanceStr) >= BigInt(formParams.amount);
+      
+      setAllowanceStatus({
+        checked: true,
+        sufficient: isAllowanceSufficient,
+        value: allowanceStr
+      });
+      
+      setResult({ type: 'allowance', value: allowanceStr });
+      alert(`当前授权额度: ${allowanceStr} Wei${isAllowanceSufficient ? '，授权充足' : '，授权不足，请先授权'}`);
+      
+      return isAllowanceSufficient;
+    } catch (e: any) {
+      console.error(e);
+      setError(`查询失败: ${e.message}`);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDirectPay = async () => {
+    if (!services?.txService || !address) {
+      setError('请先连接钱包');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    
+    try {
+      // 先检查授权额度
+      const isAllowanceSufficient = await checkAllowance();
+      
+      if (!isAllowanceSufficient) {
+        // 如果授权不足，提示用户先授权
+        if (confirm('授权额度不足，需要先进行授权操作。点击确定进行授权。')) {
+          try {
+            const txHash = await services.txService.approveToken(
+              formParams.tokenAddress,
+              formParams.spender,
+              BigInt(formParams.amount)
+            );
+            
+            alert(`授权成功！交易哈希: ${txHash}，请等待授权交易确认后再进行支付。`);
+            setResult({ type: 'approve', txHash });
+            
+            // 更新授权状态
+            setAllowanceStatus({
+              checked: true,
+              sufficient: true,
+              value: formParams.amount
+            });
+            
+            // 授权后不立即支付，因为需要等待授权交易确认
+            setLoading(false);
+            return;
+          } catch (e: any) {
+            console.error(e);
+            setError(`授权失败: ${e.message}`);
+            setLoading(false);
+            return;
+          }
+        } else {
+          // 用户取消授权
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // 授权充足，继续支付
       const txHash = await services.txService.userPayDirect(
         formParams.to,
         BigInt(formParams.amount),
@@ -199,31 +287,6 @@ export default function Payment() {
     } catch (e: any) {
       console.error(e);
       setError(`签名失败: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkAllowance = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const allowance = await services.txService.checkAllowance(
-        formParams.tokenAddress,
-        address,
-        formParams.spender
-      );
-      
-      setResult({ type: 'allowance', value: allowance.toString() });
-      alert(`当前授权额度: ${allowance.toString()} Wei`);
-    } catch (e: any) {
-      console.error(e);
-      setError(`查询失败: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -402,15 +465,29 @@ export default function Payment() {
 
           {/* 直接支付操作按钮 */}
           {activeTab === PaymentTab.DirectPayment && (
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                className="btn btn-success"
-                onClick={handleDirectPay}
-                disabled={loading || !address}
-                style={{ flex: 1 }}
-              >
-                {loading ? '处理中...' : '执行支付'}
-              </button>
+            <div>
+              <div style={{ 
+                padding: '10px',
+                marginBottom: '15px',
+                backgroundColor: '#f6ffed',
+                border: '1px solid #b7eb8f',
+                borderRadius: '4px',
+                fontSize: '14px'
+              }}>
+                <p style={{ margin: '0' }}>
+                  <strong>提示：</strong> 在支付前会自动检查授权额度，如果授权不足会提示您进行授权操作。
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  className="btn btn-success"
+                  onClick={handleDirectPay}
+                  disabled={loading || !address}
+                  style={{ flex: 1 }}
+                >
+                  {loading ? '处理中...' : '执行支付'}
+                </button>
+              </div>
             </div>
           )}
 
