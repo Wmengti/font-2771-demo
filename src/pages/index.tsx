@@ -301,9 +301,9 @@ export default function Home() {
 // 为TypeScript添加全局类型声明
 declare global {
   interface Window {
-    WalletService: any;
-    TransactionService: any;
-    BlockchainService: any;
+    WalletService: typeof import('../../dist').WalletService;
+    TransactionService: typeof import('../../dist').TransactionService;
+    BlockchainService: typeof import('../../dist').BlockchainService;
     ethereum: any;
   }
 } 
