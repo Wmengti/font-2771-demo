@@ -41,6 +41,36 @@ export declare const UNIFIED_VAULT_ABI: ({
     }[];
     name: string;
     outputs: {
+        components: ({
+            internalType: string;
+            name: string;
+            type: string;
+            components?: undefined;
+        } | {
+            components: {
+                internalType: string;
+                name: string;
+                type: string;
+            }[];
+            internalType: string;
+            name: string;
+            type: string;
+        })[];
+        internalType: string;
+        name: string;
+        type: string;
+    }[];
+    stateMutability: string;
+    type: string;
+    anonymous?: undefined;
+} | {
+    inputs: {
+        internalType: string;
+        name: string;
+        type: string;
+    }[];
+    name: string;
+    outputs: {
         internalType: string;
         name: string;
         type: string;
@@ -263,7 +293,7 @@ export declare const contract7702Abi: readonly [{
     readonly stateMutability: "nonpayable";
     readonly type: "function";
 }];
-export declare const erc20Abi: readonly [{
+export declare const ERC20_ABI: readonly [{
     readonly inputs: readonly [{
         readonly type: "address";
         readonly name: "to";

@@ -115,6 +115,22 @@ export declare class Web3Delegate {
      * @returns 包含签名的请求数据
      */
     prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId?: bigint, pointToUse?: bigint, seq?: bigint, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    /**
+     * 准备代付gas的金库存款请求（仅签名，不发送）
+     * @param tokenAddress 代币地址
+     * @param amount 存款金额
+     * @param deadlineSeconds 过期时间（秒）
+     * @returns 包含签名的请求数据
+     */
+    prepareRelayedDeposit(tokenAddress: string, amount: bigint, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    /**
+     * 准备代付gas的金库提款请求（仅签名，不发送）
+     * @param tokenAddress 代币地址
+     * @param amount 提款金额
+     * @param deadlineSeconds 过期时间（秒）
+     * @returns 包含签名的请求数据
+     */
+    prepareRelayedWithdraw(tokenAddress: string, amount: bigint, deadlineSeconds?: number): Promise<RelayedRequestData>;
 }
 export type { RelayedRequestData } from './operations/relayed-payment';
 export type { ForwardRequestData } from './signing';

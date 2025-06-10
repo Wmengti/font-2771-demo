@@ -55,6 +55,22 @@ export declare class VaultOperations {
      */
     getVaultBalance(tokenAddress: string, userAddress?: string): Promise<bigint>;
     /**
+     * 准备代付gas的存款请求（仅签名，不发送）
+     * @param tokenAddress 代币地址
+     * @param amount 存款金额
+     * @param deadlineSeconds 过期时间（秒），默认3600秒
+     * @returns 包含签名的中继请求数据
+     */
+    prepareRelayedDeposit(tokenAddress: string, amount: bigint, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    /**
+     * 准备代付gas的提款请求（仅签名，不发送）
+     * @param tokenAddress 代币地址
+     * @param amount 提款金额
+     * @param deadlineSeconds 过期时间（秒），默认3600秒
+     * @returns 包含签名的中继请求数据
+     */
+    prepareRelayedWithdraw(tokenAddress: string, amount: bigint, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    /**
      * 获取用户的积分
      * @param merchantId 商家ID
      * @param userAddress 用户地址，如不提供则使用当前连接的地址

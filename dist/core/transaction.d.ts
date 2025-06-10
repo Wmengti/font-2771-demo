@@ -1,14 +1,5 @@
 import { type Hash } from 'viem';
 import { BlockchainService } from './blockchain';
-export declare function verifyTypedDataSignature({ chainId, message, signature, expectedSigner }: {
-    chainId: number;
-    message: any;
-    signature: string;
-    expectedSigner: string;
-}): Promise<{
-    valid: boolean;
-    signer: `0x${string}`;
-}>;
 export interface ForwardRequestData {
     from: string;
     to: string;
@@ -23,6 +14,7 @@ export interface SignedRequest extends ForwardRequestData {
 }
 export declare class TransactionService {
     private blockchainService;
+    private signingService;
     constructor(blockchainService: BlockchainService);
     approveToken(tokenAddress: string, spender: string, amount: bigint): Promise<Hash>;
     checkAllowance(tokenAddress: string, owner: string, spender: string): Promise<bigint>;
@@ -34,5 +26,6 @@ export declare class TransactionService {
     withdrawFromVault(tokenAddress: string, amount: bigint): Promise<Hash>;
     consumeFromVault(merchantId: string, tokenAddress: string, amount: bigint, voucherId?: bigint, pointToUse?: bigint, seq?: bigint): Promise<Hash>;
     prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId?: bigint, pointToUse?: bigint, seq?: bigint, deadlineSeconds?: number): Promise<SignedRequest>;
-    private _signTypedData;
+    prepareRelayedDeposit(tokenAddress: string, amount: bigint, deadlineSeconds?: number): Promise<SignedRequest>;
+    prepareRelayedWithdraw(tokenAddress: string, amount: bigint, deadlineSeconds?: number): Promise<SignedRequest>;
 }

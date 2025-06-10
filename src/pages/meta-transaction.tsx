@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { PaymentDelegate } from '../../dist';
 import Layout from '../components/Layout';
 
 // 定义RelayedRequestData类型
@@ -19,7 +18,7 @@ export default function MetaTransaction() {
   const [result, setResult] = useState<RelayedRequestData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [delegate, setDelegate] = useState<PaymentDelegate | null>(null);
+  const [services, setServices] = useState<any>(null);
   
   const [formParams, setFormParams] = useState({
     tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
@@ -33,28 +32,46 @@ export default function MetaTransaction() {
   // 初始化
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const paymentDelegate = new PaymentDelegate({ 
-        useMetaMask: true,
-        publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-        contractAddress: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332'
-      });
-      setDelegate(paymentDelegate);
-      
-      // 设置默认 seq 为当前时间戳
-      setFormParams(prev => ({
-        ...prev,
-        seq: String(Math.floor(Date.now() / 1000))
-      }));
+      try {
+        // 导入需要的服务
+        const { WalletService, TransactionService, BlockchainService } = require('../../dist');
+        
+        // 创建区块链服务
+        const config = {
+          useMetaMask: true,  // 确保设置为true
+          publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
+          contractAddress: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332'
+        };
+        
+        // 创建服务实例
+        const blockchainService = new BlockchainService(config);
+        const txService = new TransactionService(blockchainService);
+        
+        // 保存服务实例
+        setServices({
+          blockchainService,
+          txService
+        });
+        
+        // 设置默认 seq 为当前时间戳
+        setFormParams(prev => ({
+          ...prev,
+          seq: String(Math.floor(Date.now() / 1000))
+        }));
+      } catch (error) {
+        console.error('初始化服务失败', error);
+        setError(`初始化失败: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
   }, []);
 
   const handleConnect = async () => {
-    if (!delegate) return;
+    if (!services?.blockchainService) return;
     
     setLoading(true);
     setError('');
     try {
-      const addr = await delegate.connectWallet();
+      const addr = await services.blockchainService.connectWallet();
       setAddress(addr);
     } catch (e: any) {
       console.error(e);
@@ -73,7 +90,7 @@ export default function MetaTransaction() {
   };
 
   const handleApprove = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -81,7 +98,7 @@ export default function MetaTransaction() {
     setLoading(true);
     setError('');
     try {
-      const txHash = await delegate.token.approveToken(
+      const txHash = await services.txService.approveToken(
         formParams.tokenAddress,
         formParams.spender,
         BigInt(formParams.amount)
@@ -97,7 +114,7 @@ export default function MetaTransaction() {
   };
 
   const handlePrepareMetaTransaction = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -105,7 +122,7 @@ export default function MetaTransaction() {
     setLoading(true);
     setError('');
     try {
-      const relayedData = await delegate.relayedPayment.preparePayment(
+      const relayedData = await services.txService.prepareRelayedPayment(
         formParams.to,
         BigInt(formParams.amount),
         formParams.tokenAddress,
@@ -124,7 +141,7 @@ export default function MetaTransaction() {
   };
 
   const checkAllowance = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -132,7 +149,7 @@ export default function MetaTransaction() {
     setLoading(true);
     setError('');
     try {
-      const allowance = await delegate.token.checkAllowance(
+      const allowance = await services.txService.checkAllowance(
         formParams.tokenAddress,
         address,
         formParams.spender
@@ -337,15 +354,13 @@ export default function MetaTransaction() {
           </div>
         )}
 
-        <div style={{ marginTop: '40px' }}>
+        <div style={{ marginTop: '30px' }}>
           <h3>使用说明:</h3>
           <ol style={{ paddingLeft: '20px' }}>
             <li>点击"连接钱包"按钮连接MetaMask</li>
-            <li>填写代币地址、授权给的合约地址、接收方地址等信息</li>
-            <li>点击"查询授权额度"查看当前授权情况</li>
-            <li>点击"授权代币"进行代币授权（用户付gas费）</li>
-            <li>点击"生成签名"创建Meta Transaction签名数据</li>
-            <li>将签名数据发送给Relayer服务进行代付gas执行</li>
+            <li>输入交易信息并点击"授权代币"按钮授权</li>
+            <li>点击"生成Meta Transaction"按钮创建交易</li>
+            <li>将签名数据发送给中继器服务进行代付gas执行</li>
           </ol>
           <div style={{ 
             marginTop: '20px',
@@ -354,7 +369,7 @@ export default function MetaTransaction() {
             border: '1px solid #ffd591',
             borderRadius: '4px'
           }}>
-            <strong>注意：</strong>Meta Transaction只生成签名数据，不执行实际交易。需要将签名数据发送给Relayer服务来代付gas费执行交易。
+            <strong>注意：</strong>Meta Transaction只生成签名数据，不执行实际交易。需要将签名数据发送给中继器服务来代付gas费执行交易。
           </div>
         </div>
       </div>

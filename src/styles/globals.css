@@ -5,6 +5,7 @@
   --warning-color: #faad14;
   --secondary-color: #6c757d;
   --background-color: #f0f2f5;
+  --danger-color: #eb2f96;
 }
 
 * {
@@ -97,6 +98,10 @@ pre {
 
 .btn-secondary {
   background-color: var(--secondary-color);
+}
+
+.btn-danger {
+  background-color: var(--danger-color);
 }
 
 .card {

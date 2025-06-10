@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { PaymentDelegate } from '../../dist';
 import Layout from '../components/Layout';
 
 // 定义RelayedRequestData类型
@@ -14,58 +13,98 @@ interface RelayedRequestData {
   signature?: string;
 }
 
+interface DepositParams {
+  tokenAddress: string;
+  amount: string;
+}
+
+interface WithdrawParams {
+  tokenAddress: string;
+  amount: string;
+  deadlineSeconds: string; // 添加过期时间参数
+}
+
+interface ConsumeParams {
+  merchantId: string;
+  tokenAddress: string;
+  amount: string;
+  voucherId: string;
+  pointToUse: string;
+  seq: string;
+  deadlineSeconds: string;
+}
+
 export default function VaultOperations() {
   const [address, setAddress] = useState<string>('');
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [delegate, setDelegate] = useState<PaymentDelegate | null>(null);
+  const [services, setServices] = useState<any>(null);
   
-  const [depositParams, setDepositParams] = useState({
+  const [depositParams, setDepositParams] = useState<DepositParams>({
     tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
-    amount: '50000000000000000000' // 50 tokens
+    amount: '1000000000000000000'
   });
 
-  const [withdrawParams, setWithdrawParams] = useState({
+  const [withdrawParams, setWithdrawParams] = useState<WithdrawParams>({
     tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
-    amount: '50000000000000000000' // 50 tokens
+    amount: '1000000000000000000',
+    deadlineSeconds: '3600' // 默认1小时
   });
 
-  const [consumeParams, setConsumeParams] = useState({
-    merchantId: '0xa8666442fA7583F783a169CC9F5449ec660295E8',
+  const [consumeParams, setConsumeParams] = useState<ConsumeParams>({
+    merchantId: '0x0000000000000000000000000000000000000000000000000000000000000001',
     tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
-    amount: '50000000000000000000', // 50 tokens
+    amount: '1000000000000000000',
     voucherId: '0',
     pointToUse: '0',
-    seq: '',
-    deadlineSeconds: '3600' // 1小时过期时间
+    seq: String(Math.floor(Date.now() / 1000)),
+    deadlineSeconds: '3600'
   });
 
   // 初始化
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const paymentDelegate = new PaymentDelegate({ 
-        useMetaMask: true,
-        publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-        contractAddress: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332'
-      });
-      setDelegate(paymentDelegate);
-      
-      // 设置默认 seq 为当前时间戳
-      setConsumeParams(prev => ({
-        ...prev,
-        seq: String(Math.floor(Date.now() / 1000))
-      }));
+      try {
+        // 导入需要的服务
+        const { WalletService, TransactionService, BlockchainService } = require('../../dist');
+        
+        // 创建区块链服务
+        const config = {
+          useMetaMask: true,  // 确保设置为true
+          publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
+          contractAddress: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332'
+        };
+        
+        // 创建服务实例
+        const blockchainService = new BlockchainService(config);
+        const txService = new TransactionService(blockchainService);
+        
+        // 保存服务实例
+        setServices({
+          blockchainService,
+          txService
+        });
+        
+        // 设置默认 seq 为当前时间戳
+        setConsumeParams(prev => ({
+          ...prev,
+          seq: String(Math.floor(Date.now() / 1000))
+        }));
+      } catch (error) {
+        console.error('初始化服务失败', error);
+        setError(`初始化失败: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
   }, []);
 
   const handleConnect = async () => {
-    if (!delegate) return;
+    if (!services?.blockchainService) return;
     
     setLoading(true);
     setError('');
     try {
-      const addr = await delegate.connectWallet();
+      const addr = await services.blockchainService.connectWallet();
       setAddress(addr);
     } catch (e: any) {
       console.error(e);
@@ -93,7 +132,7 @@ export default function VaultOperations() {
 
   // 存款前先授权
   const handleApproveForDeposit = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -103,7 +142,7 @@ export default function VaultOperations() {
     try {
       // 授权给UnifiedVault合约
       const vaultAddress = '0x0dfe1ad373bfcc5b32d22d7da81cac97ef72d7da'; // UnifiedVault地址
-      const txHash = await delegate.token.approveToken(
+      const txHash = await services.txService.approveToken(
         depositParams.tokenAddress,
         vaultAddress,
         BigInt(depositParams.amount)
@@ -121,7 +160,7 @@ export default function VaultOperations() {
 
   // 存款操作
   const handleDeposit = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -129,7 +168,7 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const txHash = await delegate.vault.deposit(
+      const txHash = await services.txService.depositToVault(
         depositParams.tokenAddress,
         BigInt(depositParams.amount)
       );
@@ -146,7 +185,7 @@ export default function VaultOperations() {
 
   // 提现操作
   const handleWithdraw = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -154,7 +193,7 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const txHash = await delegate.vault.withdraw(
+      const txHash = await services.txService.withdrawFromVault(
         withdrawParams.tokenAddress,
         BigInt(withdrawParams.amount)
       );
@@ -171,7 +210,7 @@ export default function VaultOperations() {
 
   // 直接消费（用户付gas）
   const handleConsumeDirect = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -179,12 +218,12 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const txHash = await delegate.vault.consumeDirect(
+      const txHash = await services.txService.consumeFromVault(
         consumeParams.merchantId,
         consumeParams.tokenAddress,
         BigInt(consumeParams.amount),
-        consumeParams.voucherId ? BigInt(consumeParams.voucherId) : undefined,
-        consumeParams.pointToUse ? BigInt(consumeParams.pointToUse) : undefined,
+        consumeParams.voucherId ? BigInt(consumeParams.voucherId) : 0n,
+        consumeParams.pointToUse ? BigInt(consumeParams.pointToUse) : 0n,
         BigInt(consumeParams.seq)
       );
       
@@ -198,9 +237,9 @@ export default function VaultOperations() {
     }
   };
 
-  // 消费前先授权（用于Meta Transaction）
+  // 消费前授权（如果需要）
   const handleApproveForConsume = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -208,11 +247,11 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      // 授权给Forwarder合约
-      const forwarderAddress = '0x69015912AA33720b842dCD6aC059Ed623F28d9f7'; // Forwarder地址
-      const txHash = await delegate.token.approveToken(
+      // 授权给UnifiedVault合约
+      const vaultAddress = '0x0dfe1ad373bfcc5b32d22d7da81cac97ef72d7da'; // UnifiedVault地址
+      const txHash = await services.txService.approveToken(
         consumeParams.tokenAddress,
-        forwarderAddress,
+        vaultAddress,
         BigInt(consumeParams.amount)
       );
       
@@ -226,9 +265,9 @@ export default function VaultOperations() {
     }
   };
 
-  // 准备Meta Transaction消费
+  // 准备Meta消费（代付gas）
   const handlePrepareMetaConsume = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -236,18 +275,18 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const relayedData = await delegate.vault.prepareRelayedConsume(
+      const relayedData = await services.txService.prepareRelayedConsume(
         consumeParams.merchantId,
         consumeParams.tokenAddress,
         BigInt(consumeParams.amount),
-        consumeParams.voucherId ? BigInt(consumeParams.voucherId) : undefined,
-        consumeParams.pointToUse ? BigInt(consumeParams.pointToUse) : undefined,
+        consumeParams.voucherId ? BigInt(consumeParams.voucherId) : 0n,
+        consumeParams.pointToUse ? BigInt(consumeParams.pointToUse) : 0n,
         BigInt(consumeParams.seq),
         parseInt(consumeParams.deadlineSeconds)
       );
       
       setResult({ type: 'meta_consume', data: relayedData });
-      alert('Meta Transaction消费签名成功！');
+      alert('Meta消费签名成功！');
     } catch (e: any) {
       console.error(e);
       setError(`签名失败: ${e.message}`);
@@ -256,9 +295,9 @@ export default function VaultOperations() {
     }
   };
 
-  // 查询金库余额
+  // 检查金库余额
   const handleCheckVaultBalance = async () => {
-    if (!delegate || !address) {
+    if (!services?.blockchainService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -266,25 +305,83 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const balance = await delegate.vault.getVaultBalance(
-        depositParams.tokenAddress,
-        address
+      // 调用合约查询余额
+      const vaultAddress = '0x97169867AC7DD5ca2fb506d335EA940D89695E4F'; // UnifiedVault地址
+      const abi = [{"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"address","name":"token","type":"address"}],"name":"getUserBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
+      
+      const balance = await services.blockchainService.readContract(
+        vaultAddress,
+        abi,
+        'getUserBalance',
+        [address, depositParams.tokenAddress]
       );
       
-      setResult({ type: 'vault_balance', balance: balance.toString() });
+      setResult({ type: 'balance', value: balance.toString() });
       alert(`金库余额: ${balance.toString()} Wei`);
     } catch (e: any) {
       console.error(e);
-      setError(`查询失败: ${e.message}`);
+      setError(`查询余额失败: ${e.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   const copyToClipboard = () => {
-    if (result && result.type === 'meta_consume') {
+    if (result && result.data) {
       navigator.clipboard.writeText(JSON.stringify(result.data, null, 2));
-      alert('Meta Transaction数据已复制到剪贴板！');
+      alert('签名数据已复制到剪贴板！');
+    }
+  };
+
+  // 准备Meta存款（代付gas）
+  const handlePrepareMetaDeposit = async () => {
+    if (!services?.txService || !address) {
+      setError('请先连接钱包');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const relayedData = await services.txService.prepareRelayedDeposit(
+        depositParams.tokenAddress,
+        BigInt(depositParams.amount),
+        3600 // 默认1小时过期
+      );
+      
+      setResult({ type: 'meta_deposit', data: relayedData });
+      alert('Meta存款签名成功！');
+    } catch (e: any) {
+      console.error(e);
+      setError(`签名失败: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 准备Meta提现（代付gas）
+  const handlePrepareMetaWithdraw = async () => {
+    if (!services?.txService || !address) {
+      setError('请先连接钱包');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const relayedData = await services.txService.prepareRelayedWithdraw(
+        withdrawParams.tokenAddress,
+        BigInt(withdrawParams.amount),
+        parseInt(withdrawParams.deadlineSeconds)
+      );
+      
+      setResult({ type: 'meta_withdraw', data: relayedData });
+      alert('Meta提现签名成功！');
+    } catch (e: any) {
+      console.error(e);
+      setError(`签名失败: ${e.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -338,7 +435,7 @@ export default function VaultOperations() {
 
           {/* 存款操作 */}
           <div className="card" style={{ margin: '20px 0', backgroundColor: '#f0f9ff' }}>
-            <h3>存款操作（用户付Gas）</h3>
+            <h3>存款操作</h3>
             <div className="form-group">
               <label className="form-label">代币地址</label>
               <input
@@ -363,7 +460,7 @@ export default function VaultOperations() {
                 required
               />
             </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
               <button 
                 className="btn btn-warning"
                 onClick={handleApproveForDeposit}
@@ -378,14 +475,24 @@ export default function VaultOperations() {
                 disabled={loading || !address}
                 style={{ flex: 1 }}
               >
-                {loading ? '处理中...' : '执行存款'}
+                {loading ? '处理中...' : '执行存款（用户付Gas）'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                className="btn btn-primary"
+                onClick={handlePrepareMetaDeposit}
+                disabled={loading || !address}
+                style={{ width: '100%' }}
+              >
+                {loading ? '处理中...' : '生成Meta Transaction存款'}
               </button>
             </div>
           </div>
 
           {/* 提现操作 */}
           <div className="card" style={{ margin: '20px 0', backgroundColor: '#fff7e6' }}>
-            <h3>提现操作（用户付Gas）</h3>
+            <h3>提现操作</h3>
             <div className="form-group">
               <label className="form-label">代币地址</label>
               <input
@@ -410,14 +517,37 @@ export default function VaultOperations() {
                 required
               />
             </div>
-            <button 
-              className="btn btn-success"
-              onClick={handleWithdraw}
-              disabled={loading || !address}
-              style={{ width: '100%' }}
-            >
-              {loading ? '处理中...' : '执行提现'}
-            </button>
+            <div className="form-group">
+              <label className="form-label">过期时间（秒）- 仅Meta Transaction</label>
+              <input
+                type="text"
+                name="deadlineSeconds"
+                className="form-input"
+                value={withdrawParams.deadlineSeconds}
+                onChange={handleWithdrawChange}
+                placeholder="输入过期时间（秒），默认3600秒"
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+              <button 
+                className="btn btn-success"
+                onClick={handleWithdraw}
+                disabled={loading || !address}
+                style={{ width: '100%' }}
+              >
+                {loading ? '处理中...' : '执行提现（用户付Gas）'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                className="btn btn-primary"
+                onClick={handlePrepareMetaWithdraw}
+                disabled={loading || !address}
+                style={{ width: '100%' }}
+              >
+                {loading ? '处理中...' : '生成Meta Transaction提现'}
+              </button>
+            </div>
           </div>
 
           {/* 消费操作 */}
@@ -590,11 +720,14 @@ export default function VaultOperations() {
         <div style={{ marginTop: '40px' }}>
           <h3>使用说明:</h3>
           <ol style={{ paddingLeft: '20px' }}>
-            <li><strong>存款流程：</strong>先点击"授权存款"授权代币给金库合约，然后点击"执行存款"</li>
-            <li><strong>提现流程：</strong>直接点击"执行提现"从金库提取代币到钱包</li>
+            <li><strong>存款流程（用户付Gas）：</strong>先点击"授权存款"授权代币给金库合约，然后点击"执行存款"</li>
+            <li><strong>存款流程（Meta Transaction）：</strong>先点击"授权存款"授权代币给金库合约，然后点击"生成Meta Transaction存款"创建签名数据</li>
+            <li><strong>提现流程（用户付Gas）：</strong>直接点击"执行提现"从金库提取代币到钱包</li>
+            <li><strong>提现流程（Meta Transaction）：</strong>点击"生成Meta Transaction提现"创建签名数据</li>
             <li><strong>直接消费：</strong>点击"直接消费"从金库余额中扣除并支付给商家（用户付gas）</li>
             <li><strong>Meta Transaction消费：</strong>先点击"授权"授权给Forwarder合约，然后点击"生成Meta Transaction"创建签名数据</li>
             <li><strong>查询余额：</strong>点击"查询金库余额"查看当前用户在金库中的代币余额</li>
+            <li><strong>使用签名数据：</strong>生成Meta Transaction后，复制签名数据并粘贴到中继器服务页面进行执行</li>
           </ol>
         </div>
       </div>

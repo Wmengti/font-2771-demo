@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { PaymentDelegate, TransferParams } from '../../dist';
 import Link from 'next/link';
 import Layout from '../components/Layout';
 
@@ -8,11 +7,46 @@ export default function Home() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [services, setServices] = useState<any>(null);
 
-  // 在组件挂载时将PaymentDelegate挂载到window对象上
+  // 在组件挂载时初始化服务
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.PaymentDelegate = PaymentDelegate;
+      try {
+        // 导入需要的服务
+        const { WalletService, TransactionService, BlockchainService } = require('../../dist');
+        
+        // 创建钱包服务
+        const walletService = new WalletService({ useMetaMask: true });
+        
+        // 创建区块链服务
+        const config = { 
+          useMetaMask: true,  // 确保设置为true
+          publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
+          contractAddress: '0x97169867AC7DD5ca2fb506d335EA940D89695E4F'
+        };
+        
+        // 直接使用配置创建BlockchainService
+        const blockchainService = new BlockchainService(config);
+        
+        // 创建交易服务
+        const txService = new TransactionService(blockchainService);
+        
+        // 保存服务实例
+        setServices({
+          walletService,
+          blockchainService,
+          txService
+        });
+        
+        // 为了向后兼容，将服务挂载到window对象
+        window.WalletService = WalletService;
+        window.TransactionService = TransactionService;
+        window.BlockchainService = BlockchainService;
+      } catch (e) {
+        console.error('初始化服务失败', e);
+        setError(`初始化失败: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
   }, []);
 
@@ -20,14 +54,12 @@ export default function Home() {
     setLoading(true);
     setError('');
     try {
-      const delegateConfig = { 
-        useMetaMask: true,
-        publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-        contractAddress: '0xA31a2dE4845e4fe869067618F2ABf0Cad279472F'
-      };
-      const paymentDelegate = new PaymentDelegate(delegateConfig);
-      const addr = await paymentDelegate.connectWallet();
-      setAddress(addr);
+      if (services?.walletService) {
+        const addr = await services.walletService.connectWallet();
+        setAddress(addr);
+      } else {
+        throw new Error('钱包服务未初始化');
+      }
     } catch (e: any) {
       console.error(e);
       setError(`连接失败: ${e.message}`);
@@ -45,22 +77,24 @@ export default function Home() {
     setLoading(true);
     setError('');
     try {
-      const delegateConfig = { 
-        useMetaMask: true,
-        publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-        contractAddress: '0xA31a2dE4845e4fe869067618F2ABf0Cad279472F'
-      };
-      const transferParams: TransferParams = {
-        tokenAddress: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-        to: '0xA31a2dE4845e4fe869067618F2ABf0Cad279472F',
-        amount: BigInt('50000000000000000000'),
-        gasFee: BigInt('1000100000000000000'),
-      };
-      
-      const paymentDelegate = new PaymentDelegate(delegateConfig);
-      const res = await paymentDelegate.processTransfer(transferParams);
-      setResult(res);
-      alert('MetaTx已处理！');
+      if (services?.txService) {
+        const transferParams = {
+          tokenAddress: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
+          to: '0x97169867AC7DD5ca2fb506d335EA940D89695E4F',
+          amount: BigInt('50000000000000000000'),
+        };
+        
+        // 使用TransactionService处理转账
+        const res = await services.txService.prepareRelayedPayment(
+          transferParams.to,
+          transferParams.amount,
+          transferParams.tokenAddress
+        );
+        setResult(res);
+        alert('MetaTx已生成！');
+      } else {
+        throw new Error('交易服务未初始化');
+      }
     } catch (e: any) {
       console.error(e);
       setError(`操作失败: ${e.message}`);
@@ -76,7 +110,7 @@ export default function Home() {
         
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <p style={{ fontSize: '18px', color: '#666', lineHeight: '1.6' }}>
-            这是一个基于重构后架构的Web3支付演示应用，提供了三种不同的支付场景：
+            这是一个基于重构后架构的Web3支付演示应用，提供了多种不同的支付场景和管理功能：
           </p>
         </div>
 
@@ -98,7 +132,7 @@ export default function Home() {
               <li>✅ 用户承担所有gas费用</li>
               <li>✅ 查询授权额度</li>
             </ul>
-            <Link href="/direct-payment" className="btn btn-primary" style={{ 
+            <Link href="/payment?tab=direct" className="btn btn-primary" style={{ 
               display: 'inline-block',
               textDecoration: 'none',
               color: 'white',
@@ -120,7 +154,7 @@ export default function Home() {
               <li>✅ Relayer代付gas执行</li>
               <li>✅ 可配置过期时间</li>
             </ul>
-            <Link href="/meta-transaction" className="btn btn-success" style={{ 
+            <Link href="/payment?tab=meta" className="btn btn-success" style={{ 
               display: 'inline-block',
               textDecoration: 'none',
               color: 'white',
@@ -149,6 +183,73 @@ export default function Home() {
               width: '100%'
             }}>
               开始金库操作
+            </Link>
+          </div>
+
+          {/* 商家管理卡片 */}
+          <div className="card" style={{ textAlign: 'center', padding: '30px' }}>
+            <h2 style={{ color: '#722ed1', marginBottom: '20px' }}>商家管理</h2>
+            <p style={{ color: '#666', marginBottom: '20px', minHeight: '60px' }}>
+              商家ID生成、操作员管理和收款地址设置
+            </p>
+            <ul style={{ textAlign: 'left', marginBottom: '30px', paddingLeft: '20px' }}>
+              <li>✅ 商家ID生成</li>
+              <li>✅ 操作员管理</li>
+              <li>✅ 收款地址设置</li>
+              <li>✅ 权限检查</li>
+            </ul>
+            <Link href="/merchant-management" className="btn btn-secondary" style={{ 
+              display: 'inline-block',
+              textDecoration: 'none',
+              color: 'white',
+              width: '100%'
+            }}>
+              商家管理
+            </Link>
+          </div>
+
+          {/* 商家配置卡片 */}
+          <div className="card" style={{ textAlign: 'center', padding: '30px' }}>
+            <h2 style={{ color: '#eb2f96', marginBottom: '20px' }}>商家配置</h2>
+            <p style={{ color: '#666', marginBottom: '20px', minHeight: '60px' }}>
+              设置商家的促销活动、折扣、积分和代金券规则
+            </p>
+            <ul style={{ textAlign: 'left', marginBottom: '30px', paddingLeft: '20px' }}>
+              <li>✅ 分层促销设置</li>
+              <li>✅ 折扣设置</li>
+              <li>✅ 积分返现设置</li>
+              <li>✅ 代金券返现设置</li>
+            </ul>
+            <Link href="/merchant-config" className="btn btn-danger" style={{ 
+              display: 'inline-block',
+              textDecoration: 'none',
+              color: 'white',
+              width: '100%'
+            }}>
+              商家配置
+            </Link>
+          </div>
+
+          {/* Relayer服务卡片 */}
+          <div className="card" style={{ textAlign: 'center', padding: '30px' }}>
+            <h2 style={{ color: '#13c2c2', marginBottom: '20px' }}>中继器服务</h2>
+            <p style={{ color: '#666', marginBottom: '20px', minHeight: '60px' }}>
+              处理Meta Transaction请求，代付gas费用执行交易
+            </p>
+            <ul style={{ textAlign: 'left', marginBottom: '30px', paddingLeft: '20px' }}>
+              <li>✅ 处理签名请求</li>
+              <li>✅ 代付gas费</li>
+              <li>✅ 验证签名有效性</li>
+              <li>✅ 执行链上交易</li>
+            </ul>
+            <Link href="/relayer" className="btn" style={{
+              display: 'inline-block',
+              textDecoration: 'none',
+              color: 'white',
+              width: '100%',
+              backgroundColor: '#13c2c2'
+            }}>
+              中继器服务
             </Link>
           </div>
         </div>
@@ -195,4 +296,14 @@ export default function Home() {
       </div>
     </Layout>
   );
+}
+
+// 为TypeScript添加全局类型声明
+declare global {
+  interface Window {
+    WalletService: any;
+    TransactionService: any;
+    BlockchainService: any;
+    ethereum: any;
+  }
 } 

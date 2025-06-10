@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { PaymentDelegate } from '../../dist';
 import Layout from '../components/Layout';
 
 export default function DirectPayment() {
@@ -7,7 +6,7 @@ export default function DirectPayment() {
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [delegate, setDelegate] = useState<PaymentDelegate | null>(null);
+  const [services, setServices] = useState<any>(null);
   
   const [formParams, setFormParams] = useState({
     tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
@@ -20,28 +19,52 @@ export default function DirectPayment() {
   // 初始化
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const paymentDelegate = new PaymentDelegate({ 
-        useMetaMask: true,
-        publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-        contractAddress: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332'
-      });
-      setDelegate(paymentDelegate);
-      
-      // 设置默认 seq 为当前时间戳
-      setFormParams(prev => ({
-        ...prev,
-        seq: String(Math.floor(Date.now() / 1000))
-      }));
+      try {
+        // 导入需要的服务
+        const { WalletService, TransactionService, BlockchainService } = require('../../dist');
+        
+        // 创建钱包服务
+        const walletService = new WalletService({ useMetaMask: true });
+        
+        // 创建区块链服务
+        const config = {
+          useMetaMask: true,  // 确保设置为true
+          publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
+          contractAddress: '0xB805f94b483bAB6658CA7164FBe02dcB5cA1D332'
+        };
+        
+        // 直接使用WalletService作为第一个参数
+        const blockchainService = new BlockchainService(config);
+        
+        // 创建交易服务
+        const txService = new TransactionService(blockchainService);
+        
+        // 保存服务实例
+        setServices({
+          walletService,
+          blockchainService,
+          txService
+        });
+        
+        // 设置默认 seq 为当前时间戳
+        setFormParams(prev => ({
+          ...prev,
+          seq: String(Math.floor(Date.now() / 1000))
+        }));
+      } catch (error) {
+        console.error('初始化服务失败', error);
+        setError(`初始化失败: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
   }, []);
 
   const handleConnect = async () => {
-    if (!delegate) return;
+    if (!services?.walletService) return;
     
     setLoading(true);
     setError('');
     try {
-      const addr = await delegate.connectWallet();
+      const addr = await services.walletService.connectWallet();
       setAddress(addr);
     } catch (e: any) {
       console.error(e);
@@ -60,7 +83,7 @@ export default function DirectPayment() {
   };
 
   const handleApprove = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -68,7 +91,7 @@ export default function DirectPayment() {
     setLoading(true);
     setError('');
     try {
-      const txHash = await delegate.token.approveToken(
+      const txHash = await services.txService.approveToken(
         formParams.tokenAddress,
         formParams.spender,
         BigInt(formParams.amount)
@@ -85,7 +108,7 @@ export default function DirectPayment() {
   };
 
   const handlePay = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -93,7 +116,7 @@ export default function DirectPayment() {
     setLoading(true);
     setError('');
     try {
-      const txHash = await delegate.directPayment.pay(
+      const txHash = await services.txService.userPayDirect(
         formParams.to,
         BigInt(formParams.amount),
         formParams.tokenAddress,
@@ -111,7 +134,7 @@ export default function DirectPayment() {
   };
 
   const checkAllowance = async () => {
-    if (!delegate || !address) {
+    if (!services?.txService || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -119,7 +142,7 @@ export default function DirectPayment() {
     setLoading(true);
     setError('');
     try {
-      const allowance = await delegate.token.checkAllowance(
+      const allowance = await services.txService.checkAllowance(
         formParams.tokenAddress,
         address,
         formParams.spender
