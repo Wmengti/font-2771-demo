@@ -9,6 +9,23 @@ interface MerchantParams {
   operatorAddress: string;
 }
 
+// 工具函数：统一 merchantId 格式
+function normalizeMerchantId(input, sdk) {
+  if (input.startsWith('0x') && input.length === 66) {
+    return input;
+  }
+  if (sdk?.merchantConfigManager?.stringToBytes32) {
+    return sdk.merchantConfigManager.stringToBytes32(input);
+  }
+  let hex = '';
+  try {
+    hex = Buffer.from(input, 'utf8').toString('hex');
+  } catch {
+    hex = Array.from(input).map(c => c.charCodeAt(0).toString(16)).join('');
+  }
+  return '0x' + hex.padEnd(64, '0');
+}
+
 export default function MerchantManagement() {
   const { sdk, address } = useWeb3();
   const [result, setResult] = useState<any>(null);
@@ -74,8 +91,9 @@ export default function MerchantManagement() {
     setLoading(true);
     setError('');
     try {
+      const normalizedId = normalizeMerchantId(merchantParams.merchantId, sdk);
       const result = await merchantManager.setMerchantOperator(
-        merchantParams.merchantId,
+        normalizedId,
         merchantParams.operatorAddress
       );
       setResult({ type: 'add_operator', result });
@@ -100,8 +118,9 @@ export default function MerchantManagement() {
     setLoading(true);
     setError('');
     try {
+      const normalizedId = normalizeMerchantId(merchantParams.merchantId, sdk);
       const result = await merchantManager.setMerchantOperator(
-        merchantParams.merchantId,
+        normalizedId,
         merchantParams.operatorAddress
       );
       setResult(result);
@@ -125,8 +144,9 @@ export default function MerchantManagement() {
     setLoading(true);
     setError('');
     try {
+      const normalizedId = normalizeMerchantId(merchantParams.merchantId, sdk);
       const result = await merchantManager.checkMerchantOperator(
-        merchantParams.merchantId,
+        normalizedId,
         merchantParams.operatorAddress
       );
       setResult({ type: 'check_permission', result });
