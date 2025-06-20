@@ -110,7 +110,7 @@ interface PromoTier {
 }
 
 // 工具函数：统一 merchantId 格式
-function normalizeMerchantId(input, sdk) {
+function normalizeMerchantId(input: string, sdk: any) {
   if (input.startsWith('0x') && input.length === 66) {
     return input;
   }
@@ -121,7 +121,7 @@ function normalizeMerchantId(input, sdk) {
   try {
     hex = Buffer.from(input, 'utf8').toString('hex');
   } catch {
-    hex = Array.from(input).map(c => c.charCodeAt(0).toString(16)).join('');
+    hex = Array.from(input).map((c: string) => c.charCodeAt(0).toString(16)).join('');
   }
   return '0x' + hex.padEnd(64, '0');
 }
