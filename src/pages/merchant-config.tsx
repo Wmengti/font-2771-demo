@@ -1,27 +1,20 @@
-import { useEffect, useState } from 'react';
-import { MerchantConfigManager } from '../../dist';
+import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import { useWeb3 } from '../context/Web3Context';
 
 interface ConfigParams {
   merchantId: string;
-  promoTiersEnabled: boolean;
-  discountEnabled: boolean;
-  discountBase: string;
-  discountRate: string;
-  cashbackPointEnabled: boolean;
-  cashbackPointBase: string;
-  cashbackPointAmount: string;
-  cashbackVoucherEnabled: boolean;
-  cashbackVoucherBase: string;
-  cashbackVoucherAmount: string;
-  voucherExpirePeriod: string;
-}
-
-interface PromoTier {
-  minAmount: string;
-  discountRate: string;
-  voucherAmount: string;
-  pointAmount: string;
+  promoTiersEnabled?: boolean;
+  discountEnabled?: boolean;
+  discountBase?: string;
+  discountRate?: string;
+  cashbackPointEnabled?: boolean;
+  cashbackPointBase?: string;
+  cashbackPointAmount?: string;
+  cashbackVoucherEnabled?: boolean;
+  cashbackVoucherBase?: string;
+  cashbackVoucherAmount?: string;
+  voucherExpirePeriod?: string;
 }
 
 // 用于在JSON输出中处理BigInt类型
@@ -85,87 +78,72 @@ const createDefaultPromoTiers = (): PromoTier[] => {
       minAmount: '10', // 消费满10单位
       discountRate: '90', // 90%折扣率 
       voucherAmount: '10', // 返10代金券
-      pointAmount: '50'    // 返50积分
+      pointAmount: '50',    // 返50积分
+      startTime: '',
+      endTime: '',
+      voucherExpirePeriod: '',
+      enabled: true
     },
     {
       minAmount: '20', // 消费满20单位
       discountRate: '80', // 80%折扣率
       voucherAmount: '20', // 返20代金券 
-      pointAmount: '150'   // 返150积分
+      pointAmount: '150',   // 返150积分
+      startTime: '',
+      endTime: '',
+      voucherExpirePeriod: '',
+      enabled: true
     }
   ];
 };
 
+// 增加活动配置类型
+interface PromoTier {
+  minAmount: string;
+  discountRate: string;
+  voucherAmount: string;
+  pointAmount: string;
+  startTime: string;
+  endTime: string;
+  voucherExpirePeriod: string;
+  enabled: boolean;
+}
+
 export default function MerchantConfig() {
-  const [address, setAddress] = useState<string>('');
+  const { sdk, address } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [configManager, setConfigManager] = useState<MerchantConfigManager | null>(null);
   const [configParams, setConfigParams] = useState<ConfigParams>({
     merchantId: '',
-    promoTiersEnabled: true,        // 启用促销分档
-    discountEnabled: false,          // 禁用普通折扣
-    discountBase: '500',             // 满500享受折扣
-    discountRate: '95',              // 95%折扣率
-    cashbackPointEnabled: false,     // 禁用返积分
-    cashbackPointBase: '300',        // 满300返积分
-    cashbackPointAmount: '30',       // 返30积分
-    cashbackVoucherEnabled: false,   // 禁用返券
-    cashbackVoucherBase: '800',      // 满800返券
-    cashbackVoucherAmount: '50',     // 返50代金券
-    voucherExpirePeriod: '2592000'   // 券有效期30天（秒）
   });
-  const [promoTiers, setPromoTiers] = useState<PromoTier[]>([
-    {
-      minAmount: '10', // 消费满10单位
-      discountRate: '90', // 90%折扣率 
-      voucherAmount: '10', // 返10代金券
-      pointAmount: '50'    // 返50积分
-    },
-    {
-      minAmount: '20', // 消费满20单位
-      discountRate: '80', // 80%折扣率
-      voucherAmount: '20', // 返20代金券 
-      pointAmount: '150'   // 返150积分
-    }
-  ]);
 
+  const [promoTiers, setPromoTiers] = useState<PromoTier[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('merchant_promoTiers');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {}
+      }
+    }
+    // 默认2档
+    return [
+      { minAmount: '', discountRate: '', voucherAmount: '', pointAmount: '', startTime: '', endTime: '', voucherExpirePeriod: '', enabled: true },
+      { minAmount: '', discountRate: '', voucherAmount: '', pointAmount: '', startTime: '', endTime: '', voucherExpirePeriod: '', enabled: true }
+    ];
+  });
+
+  // 每次 promoTiers 变化自动保存到 localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const initConfigManager = async () => {
-        try {
-          const config = { 
-            useMetaMask: true,
-            publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-            contractAddress: '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14'
-          };
-          const manager = new MerchantConfigManager(config);
-          setConfigManager(manager);
-        } catch (e) {
-          console.error('初始化MerchantConfigManager失败', e);
-        }
-      };
-      
-      initConfigManager();
+      localStorage.setItem('merchant_promoTiers', JSON.stringify(promoTiers));
     }
-  }, []);
+  }, [promoTiers]);
 
-  const handleConnect = async () => {
-    if (!configManager) return;
-    
-    setLoading(true);
-    setError('');
-    try {
-      const addr = await configManager.connectWallet();
-      setAddress(addr);
-    } catch (e: any) {
-      console.error(e);
-      setError(`连接失败: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 新增：当前编辑的档位
+  const [editingTier, setEditingTier] = useState<PromoTier>({ minAmount: '', discountRate: '', voucherAmount: '', pointAmount: '', startTime: '', endTime: '', voucherExpirePeriod: '', enabled: true });
+  const [editingIdx, setEditingIdx] = useState<number | null>(null); // null表示新增，数字表示编辑某一档
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -175,200 +153,130 @@ export default function MerchantConfig() {
     }));
   };
 
-  const handlePromoTierChange = (index: number, field: keyof PromoTier, value: string) => {
-    const newTiers = [...promoTiers];
-    newTiers[index] = {
-      ...newTiers[index],
-      [field]: value
-    };
-    setPromoTiers(newTiers);
-  };
-
-  const addPromoTier = () => {
-    setPromoTiers([
-      ...promoTiers,
-      {
-        minAmount: '30', // 消费满30单位
-        discountRate: '70', // 70%折扣率
-        voucherAmount: '30', // 返30代金券
-        pointAmount: '200' // 返200积分
-      }
-    ]);
-  };
-
-  const removePromoTier = (index: number) => {
-    if (promoTiers.length > 1) {
-      const newTiers = [...promoTiers];
-      newTiers.splice(index, 1);
-      setPromoTiers(newTiers);
-    }
-  };
-
-  const handleCreateConfig = async () => {
-    if (!configManager || !address) {
+  // 提交当前档位
+  const handleSubmitTier = async () => {
+    if (!sdk || !address) {
       setError('请先连接钱包');
       return;
     }
-
     if (!configParams.merchantId) {
       setError('请输入商家ID');
       return;
     }
-
     setLoading(true);
     setError('');
     try {
-      const contractConfig = {
-        promoTiersEnabled: configParams.promoTiersEnabled,
-        promoTiers: promoTiers.map(tier => ({
-          minAmount: BigInt(tier.minAmount),
-          discountRate: BigInt(tier.discountRate),
-          voucherAmount: BigInt(tier.voucherAmount),
-          pointAmount: BigInt(tier.pointAmount)
-        })),
-        discountEnabled: configParams.discountEnabled,
-        discountBase: BigInt(configParams.discountBase),
-        discountRate: BigInt(configParams.discountRate),
-        cashbackPointEnabled: configParams.cashbackPointEnabled,
-        cashbackPointBase: BigInt(configParams.cashbackPointBase),
-        cashbackPointAmount: BigInt(configParams.cashbackPointAmount),
-        cashbackVoucherEnabled: configParams.cashbackVoucherEnabled,
-        cashbackVoucherBase: BigInt(configParams.cashbackVoucherBase),
-        cashbackVoucherAmount: BigInt(configParams.cashbackVoucherAmount),
-        voucherExpirePeriod: BigInt(configParams.voucherExpirePeriod)
-      };
-
-      const result = await configManager.createMerchantConfig(
+      const idx = editingIdx === null ? promoTiers.length : editingIdx;
+      await sdk.merchantConfigManager.setPromoTier(
         configParams.merchantId,
-        contractConfig
+        idx,
+        BigInt(editingTier.minAmount || '0'),
+        BigInt(editingTier.discountRate || '0'),
+        BigInt(editingTier.voucherAmount || '0'),
+        BigInt(editingTier.pointAmount || '0'),
+        BigInt(editingTier.startTime || '0'),
+        BigInt(editingTier.endTime || '0'),
+        BigInt(editingTier.voucherExpirePeriod || '0'),
+        !!editingTier.enabled
       );
-      
-      setResult({ type: 'create_config', result });
-      if (result.success) {
-        alert('创建商家配置成功！');
+      let newTiers = [...promoTiers];
+      if (editingIdx === null) {
+        newTiers.push(editingTier);
       } else {
-        setError(`创建商家配置失败: ${result.message}`);
+        newTiers[editingIdx] = editingTier;
       }
+      setPromoTiers(newTiers);
+      localStorage.setItem('merchant_promoTiers', JSON.stringify(newTiers));
+      setEditingTier({ minAmount: '', discountRate: '', voucherAmount: '', pointAmount: '', startTime: '', endTime: '', voucherExpirePeriod: '', enabled: true });
+      setEditingIdx(null);
+      alert('档位已保存到链上！');
     } catch (e: any) {
-      console.error(e);
-      setError(`操作失败: ${e.message}`);
+      setError('保存失败: ' + (e.message || e.toString()));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGetConfig = async () => {
-    if (!configManager || !address) {
+  // 删除档位
+  const handleDeleteTier = async (idx: number) => {
+    if (!sdk || !address) {
       setError('请先连接钱包');
       return;
     }
-
     if (!configParams.merchantId) {
       setError('请输入商家ID');
       return;
     }
-
     setLoading(true);
     setError('');
     try {
-      const result = await configManager.getMerchantConfig(
-        configParams.merchantId
+      // 这里链上可用 setPromoTier(..., enabled=false) 禁用该档位
+      const t = promoTiers[idx];
+      await sdk.merchantConfigManager.setPromoTier(
+        configParams.merchantId,
+        idx,
+        BigInt(t.minAmount || '0'),
+        BigInt(t.discountRate || '0'),
+        BigInt(t.voucherAmount || '0'),
+        BigInt(t.pointAmount || '0'),
+        BigInt(t.startTime || '0'),
+        BigInt(t.endTime || '0'),
+        BigInt(t.voucherExpirePeriod || '0'),
+        false // 禁用
       );
-      
-      setResult({ type: 'get_config', result });
-      console.log('获取的配置原始数据:', JSON.stringify(result, null, 2));
-      
-      if (result.success) {
-        // 检查API返回的数据是否为空
-        if (!result.data) {
-          console.log('API返回成功但数据为空，使用当前设置');
-          
-          // 设置默认的促销层级
-          if (promoTiers.length === 0) {
-            setPromoTiers(createDefaultPromoTiers());
-          }
-          
-          alert('该商家ID尚未配置，请设置后保存');
-          return;
-        }
-        
-        // 更新表单数据
-        const config = result.data;
-        console.log('配置数据类型:', typeof config);
-        console.log('配置数据结构:', Object.keys(config));
-        console.log('配置数据详情:', JSON.stringify(config, bigintReplacer, 2));
-        
-        // 检查配置是否为空
-        if (isEmptyConfig(config)) {
-          console.log('获取到空配置，使用当前表单值');
-          
-          // 如果当前没有设置促销层级，则设置默认的促销层级
-          if (promoTiers.length === 0) {
-            setPromoTiers(createDefaultPromoTiers());
-          }
-          
-          alert('该商家ID尚未配置，请设置后保存');
-          return;
-        }
-        
-        // 配置有效，更新表单
-        console.log('获取到有效配置，更新表单');
-        
-        // 更新配置参数
-        setConfigParams({
-          merchantId: configParams.merchantId,
-          promoTiersEnabled: config.promoTiersEnabled || false,
-          discountEnabled: config.discountEnabled || false,
-          discountBase: config.discountBase || configParams.discountBase,
-          discountRate: config.discountRate || configParams.discountRate,
-          cashbackPointEnabled: config.cashbackPointEnabled || false,
-          cashbackPointBase: config.cashbackPointBase || configParams.cashbackPointBase,
-          cashbackPointAmount: config.cashbackPointAmount || configParams.cashbackPointAmount,
-          cashbackVoucherEnabled: config.cashbackVoucherEnabled || false,
-          cashbackVoucherBase: config.cashbackVoucherBase || configParams.cashbackVoucherBase,
-          cashbackVoucherAmount: config.cashbackVoucherAmount || configParams.cashbackVoucherAmount,
-          voucherExpirePeriod: config.voucherExpirePeriod || configParams.voucherExpirePeriod
-        });
-
-        // 更新促销层级
-        if (config.promoTiers && Array.isArray(config.promoTiers) && config.promoTiers.length > 0) {
-          console.log('原始促销层级:', JSON.stringify(config.promoTiers, bigintReplacer, 2));
-          
-          const formattedTiers = config.promoTiers
-            .filter((tier: any) => tier !== null && tier !== undefined) // 过滤掉null值
-            .map((tier: any) => ({
-              minAmount: tier.minAmount || '0',
-              discountRate: tier.discountRate || '100',
-              voucherAmount: tier.voucherAmount || '0',
-              pointAmount: tier.pointAmount || '0'
-            }));
-          
-          if (formattedTiers.length > 0) {
-            console.log('处理后的促销层级:', formattedTiers);
-            setPromoTiers(formattedTiers);
-          } else {
-            console.log('处理后的促销层级为空，使用默认设置');
-            setPromoTiers(createDefaultPromoTiers());
-          }
-        } else {
-          console.log('没有促销层级数据，使用默认设置');
-          setPromoTiers(createDefaultPromoTiers());
-        }
-        
-        alert('获取商家配置成功！');
-      } else {
-        console.log('返回结果失败，使用当前表单值');
-        
-        // 如果当前没有设置促销层级，则设置默认的促销层级
-        if (promoTiers.length === 0) {
-          setPromoTiers(createDefaultPromoTiers());
-        }
-        
-        alert('未找到该商家配置，请设置后保存');
-      }
+      const newTiers = promoTiers.filter((_, i) => i !== idx);
+      setPromoTiers(newTiers);
+      localStorage.setItem('merchant_promoTiers', JSON.stringify(newTiers));
+      alert('档位已删除！');
     } catch (e: any) {
-      console.error('获取配置出错:', e);
-      setError(`操作失败: ${e.message}`);
+      setError('删除失败: ' + (e.message || e.toString()));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 编辑档位
+  const handleEditTier = (idx: number) => {
+    setEditingTier(promoTiers[idx]);
+    setEditingIdx(idx);
+  };
+
+  const handleGetConfig = async () => {
+    if (!sdk || !address) {
+      setError('请先连接钱包');
+      return;
+    }
+    if (!configParams.merchantId) {
+      setError('请输入商家ID');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const tiers: PromoTier[] = [];
+      for (let idx = 0; idx < 20; idx++) { // 最多查20档
+        try {
+          const res = await sdk.vault.getPromoTier(configParams.merchantId, idx);
+          if (!res || !res.minAmount) break;
+          tiers.push({
+            minAmount: res.minAmount?.toString() || '',
+            discountRate: res.discountRate?.toString() || '',
+            voucherAmount: res.voucherAmount?.toString() || '',
+            pointAmount: res.pointAmount?.toString() || '',
+            startTime: res.startTime?.toString() || '',
+            endTime: res.endTime?.toString() || '',
+            voucherExpirePeriod: res.voucherExpirePeriod?.toString() || '',
+            enabled: !!res.enabled
+          });
+        } catch {
+          break;
+        }
+      }
+      setPromoTiers(tiers.length ? tiers : [{ minAmount: '', discountRate: '', voucherAmount: '', pointAmount: '', startTime: '', endTime: '', voucherExpirePeriod: '', enabled: true }]);
+      localStorage.setItem('merchant_promoTiers', JSON.stringify(tiers));
+      alert('链上活动配置已同步！');
+    } catch (e: any) {
+      setError('获取失败: ' + (e.message || e.toString()));
     } finally {
       setLoading(false);
     }
@@ -381,14 +289,7 @@ export default function MerchantConfig() {
         
         <div className="card">
           <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-            <button 
-              className="btn btn-primary"
-              onClick={handleConnect} 
-              disabled={loading}
-              style={{ marginRight: '10px' }}
-            >
-              {loading ? '处理中...' : '连接钱包'}
-            </button>
+            {/* 连接钱包按钮已全局化，这里不再显示 */}
           </div>
 
           {address && (
@@ -428,6 +329,65 @@ export default function MerchantConfig() {
             />
           </div>
 
+          <div className="form-group">
+            <label className="form-label" style={{ fontSize: 15, marginBottom: 6 }}>{editingIdx === null ? '新增活动档位' : `编辑第${editingIdx + 1}档位`}</label>
+            <div style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 14, background: '#f9fafb', boxShadow: '0 1px 4px rgba(106,130,251,0.04)', marginBottom: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 500, color: '#6a82fb', fontSize: 13 }}>满多少（minAmount）</label>
+                  <input type="number" value={editingTier.minAmount} onChange={e => setEditingTier(t => ({ ...t, minAmount: e.target.value }))} placeholder="如 10" style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 14 }} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 500, color: '#6a82fb', fontSize: 13 }}>折扣率（discountRate）</label>
+                  <input type="number" value={editingTier.discountRate} onChange={e => setEditingTier(t => ({ ...t, discountRate: e.target.value }))} placeholder="如 90" style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 14 }} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 500, color: '#6a82fb', fontSize: 13 }}>返券（voucherAmount）</label>
+                  <input type="number" value={editingTier.voucherAmount} onChange={e => setEditingTier(t => ({ ...t, voucherAmount: e.target.value }))} placeholder="如 10" style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 14 }} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 500, color: '#6a82fb', fontSize: 13 }}>返积分（pointAmount）</label>
+                  <input type="number" value={editingTier.pointAmount} onChange={e => setEditingTier(t => ({ ...t, pointAmount: e.target.value }))} placeholder="如 50" style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 14 }} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 500, color: '#6a82fb', fontSize: 13 }}>开始时间（startTime, 秒）</label>
+                  <input type="number" value={editingTier.startTime} onChange={e => setEditingTier(t => ({ ...t, startTime: e.target.value }))} placeholder="如 0" style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 14 }} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 500, color: '#6a82fb', fontSize: 13 }}>结束时间（endTime, 秒）</label>
+                  <input type="number" value={editingTier.endTime} onChange={e => setEditingTier(t => ({ ...t, endTime: e.target.value }))} placeholder="如 0" style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 14 }} />
+                </div>
+                <div>
+                  <label className="form-label" style={{ fontWeight: 500, color: '#6a82fb', fontSize: 13 }}>券有效期（voucherExpirePeriod, 秒）</label>
+                  <input type="number" value={editingTier.voucherExpirePeriod} onChange={e => setEditingTier(t => ({ ...t, voucherExpirePeriod: e.target.value }))} placeholder="如 0" style={{ width: '100%', padding: 6, borderRadius: 6, border: '1px solid #e0e0e0', fontSize: 14 }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label className="form-label" style={{ marginBottom: 0, fontWeight: 500, color: '#6a82fb', fontSize: 13 }}>启用（enabled）</label>
+                  <input type="checkbox" checked={editingTier.enabled} onChange={e => setEditingTier(t => ({ ...t, enabled: e.target.checked }))} />
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                  <button type="button" onClick={handleSubmitTier} style={{ flex: 1, background: 'linear-gradient(90deg, #6a82fb 0%, #fc5c7d 100%)', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 0', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>{editingIdx === null ? '新增档位' : '保存修改'}</button>
+                  {editingIdx !== null && <button type="button" onClick={() => { setEditingTier({ minAmount: '', discountRate: '', voucherAmount: '', pointAmount: '', startTime: '', endTime: '', voucherExpirePeriod: '', enabled: true }); setEditingIdx(null); }} style={{ flex: 1, background: '#f5f5f5', color: '#888', border: '1px solid #e0e0e0', borderRadius: 6, padding: '6px 0', fontWeight: 500, fontSize: 15, cursor: 'pointer' }}>取消</button>}
+                </div>
+              </div>
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <label className="form-label" style={{ fontSize: 15, marginBottom: 6 }}>已配置档位</label>
+              {promoTiers.length === 0 && <div style={{ color: '#aaa', fontSize: 14 }}>暂无档位</div>}
+              {promoTiers.map((tier, idx) => (
+                <div key={idx} style={{ border: '1px solid #e0e0e0', borderRadius: 8, padding: 10, marginBottom: 8, background: '#fff' }}>
+                  <div style={{ fontSize: 14, color: '#333' }}>
+                    <b>满{tier.minAmount}</b>，折扣{tier.discountRate}%，返券{tier.voucherAmount}，返积分{tier.pointAmount}，有效期{tier.startTime}-{tier.endTime}，券期{tier.voucherExpirePeriod}秒，{tier.enabled ? '启用' : '禁用'}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                    <button type="button" onClick={() => handleEditTier(idx)} style={{ background: '#f0f5ff', color: '#3056d3', border: 'none', borderRadius: 5, padding: '2px 12px', fontSize: 13, cursor: 'pointer' }}>编辑</button>
+                    <button type="button" onClick={() => handleDeleteTier(idx)} style={{ background: '#fff0f0', color: '#d32f2f', border: 'none', borderRadius: 5, padding: '2px 12px', fontSize: 13, cursor: 'pointer' }}>删除</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
             <button 
               className="btn btn-warning"
@@ -437,245 +397,6 @@ export default function MerchantConfig() {
             >
               {loading ? '处理中...' : '获取配置'}
             </button>
-            <button 
-              className="btn btn-success"
-              onClick={handleCreateConfig}
-              disabled={loading || !address}
-              style={{ flex: 1 }}
-            >
-              {loading ? '处理中...' : '保存配置'}
-            </button>
-          </div>
-
-          {/* 分层促销设置 */}
-          <div className="card" style={{ margin: '20px 0', backgroundColor: '#f0f9ff' }}>
-            <h3>分层促销设置</h3>
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  name="promoTiersEnabled"
-                  checked={configParams.promoTiersEnabled}
-                  onChange={handleInputChange}
-                  style={{ marginRight: '8px' }}
-                />
-                启用分层促销
-              </label>
-            </div>
-
-            {configParams.promoTiersEnabled && (
-              <div>
-                {promoTiers.map((tier, index) => (
-                  <div key={index} style={{ 
-                    border: '1px dashed #d9d9d9', 
-                    padding: '10px', 
-                    marginBottom: '10px',
-                    borderRadius: '4px'
-                  }}>
-                    <h4>层级 {index + 1}</h4>
-                    <div className="form-group">
-                      <label className="form-label">最低消费金额</label>
-                      <input
-                        type="text"
-                        value={tier.minAmount}
-                        onChange={(e) => handlePromoTierChange(index, 'minAmount', e.target.value)}
-                        className="form-input"
-                        placeholder="输入最低消费金额"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">折扣率 (%)</label>
-                      <input
-                        type="text"
-                        value={tier.discountRate}
-                        onChange={(e) => handlePromoTierChange(index, 'discountRate', e.target.value)}
-                        className="form-input"
-                        placeholder="输入折扣率，如90表示90%"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">代金券金额</label>
-                      <input
-                        type="text"
-                        value={tier.voucherAmount}
-                        onChange={(e) => handlePromoTierChange(index, 'voucherAmount', e.target.value)}
-                        className="form-input"
-                        placeholder="输入代金券金额"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label">积分数量</label>
-                      <input
-                        type="text"
-                        value={tier.pointAmount}
-                        onChange={(e) => handlePromoTierChange(index, 'pointAmount', e.target.value)}
-                        className="form-input"
-                        placeholder="输入积分数量"
-                      />
-                    </div>
-                    {promoTiers.length > 1 && (
-                      <button 
-                        className="btn btn-warning"
-                        onClick={() => removePromoTier(index)}
-                        style={{ width: '100%' }}
-                      >
-                        删除此层级
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button 
-                  className="btn btn-primary"
-                  onClick={addPromoTier}
-                  style={{ width: '100%' }}
-                >
-                  添加层级
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* 折扣设置 */}
-          <div className="card" style={{ margin: '20px 0', backgroundColor: '#fff7e6' }}>
-            <h3>折扣设置</h3>
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  name="discountEnabled"
-                  checked={configParams.discountEnabled}
-                  onChange={handleInputChange}
-                  style={{ marginRight: '8px' }}
-                />
-                启用折扣
-              </label>
-            </div>
-
-            {configParams.discountEnabled && (
-              <>
-                <div className="form-group">
-                  <label className="form-label">基准金额</label>
-                  <input
-                    type="text"
-                    name="discountBase"
-                    className="form-input"
-                    value={configParams.discountBase}
-                    onChange={handleInputChange}
-                    placeholder="输入基准金额"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">折扣率 (%)</label>
-                  <input
-                    type="text"
-                    name="discountRate"
-                    className="form-input"
-                    value={configParams.discountRate}
-                    onChange={handleInputChange}
-                    placeholder="输入折扣率，如95表示95%"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* 积分返现设置 */}
-          <div className="card" style={{ margin: '20px 0', backgroundColor: '#f6ffed' }}>
-            <h3>积分返现设置</h3>
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  name="cashbackPointEnabled"
-                  checked={configParams.cashbackPointEnabled}
-                  onChange={handleInputChange}
-                  style={{ marginRight: '8px' }}
-                />
-                启用积分返现
-              </label>
-            </div>
-
-            {configParams.cashbackPointEnabled && (
-              <>
-                <div className="form-group">
-                  <label className="form-label">基准金额</label>
-                  <input
-                    type="text"
-                    name="cashbackPointBase"
-                    className="form-input"
-                    value={configParams.cashbackPointBase}
-                    onChange={handleInputChange}
-                    placeholder="输入基准金额"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">返还积分数量</label>
-                  <input
-                    type="text"
-                    name="cashbackPointAmount"
-                    className="form-input"
-                    value={configParams.cashbackPointAmount}
-                    onChange={handleInputChange}
-                    placeholder="输入返还积分数量"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* 代金券返现设置 */}
-          <div className="card" style={{ margin: '20px 0', backgroundColor: '#e6f7ff' }}>
-            <h3>代金券返现设置</h3>
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  name="cashbackVoucherEnabled"
-                  checked={configParams.cashbackVoucherEnabled}
-                  onChange={handleInputChange}
-                  style={{ marginRight: '8px' }}
-                />
-                启用代金券返现
-              </label>
-            </div>
-
-            {configParams.cashbackVoucherEnabled && (
-              <>
-                <div className="form-group">
-                  <label className="form-label">基准金额</label>
-                  <input
-                    type="text"
-                    name="cashbackVoucherBase"
-                    className="form-input"
-                    value={configParams.cashbackVoucherBase}
-                    onChange={handleInputChange}
-                    placeholder="输入基准金额"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">代金券金额</label>
-                  <input
-                    type="text"
-                    name="cashbackVoucherAmount"
-                    className="form-input"
-                    value={configParams.cashbackVoucherAmount}
-                    onChange={handleInputChange}
-                    placeholder="输入代金券金额"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">代金券有效期 (秒)</label>
-                  <input
-                    type="text"
-                    name="voucherExpirePeriod"
-                    className="form-input"
-                    value={configParams.voucherExpirePeriod}
-                    onChange={handleInputChange}
-                    placeholder="输入代金券有效期，单位为秒"
-                  />
-                </div>
-              </>
-            )}
           </div>
         </div>
 

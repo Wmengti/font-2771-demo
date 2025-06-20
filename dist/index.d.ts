@@ -1,4 +1,4 @@
-export { MerchantManager } from './core/merchant-manager';
+export { Web3Delegate } from './core';
 export { MerchantConfigManager } from './core/merchant-config-manager';
 export { RelayerService } from './core/relayer-service';
 export { WalletService } from './core/wallet-service';

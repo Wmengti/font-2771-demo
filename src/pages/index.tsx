@@ -1,119 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import Layout from '../components/Layout';
+import { useWeb3 } from '../context/Web3Context';
 
 export default function Home() {
-  const [address, setAddress] = useState<string>('');
+  const { sdk, address } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [services, setServices] = useState<any>(null);
 
-  // 在组件挂载时初始化服务
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        // 导入需要的服务
-        const { WalletService, TransactionService, BlockchainService } = require('../../dist');
-        
-        // 创建钱包服务
-        const walletService = new WalletService({ useMetaMask: true });
-        
-        // 创建区块链服务
-        const config = { 
-          useMetaMask: true,  // 确保设置为true
-          publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          contractAddress: '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14'
-        };
-        
-        // 直接使用配置创建BlockchainService
-        const blockchainService = new BlockchainService(config);
-        
-        // 创建交易服务
-        const txService = new TransactionService(blockchainService);
-        
-        // 保存服务实例
-        setServices({
-          walletService,
-          blockchainService,
-          txService
-        });
-        
-        // 为了向后兼容，将服务挂载到window对象
-        window.WalletService = WalletService;
-        window.TransactionService = TransactionService;
-        window.BlockchainService = BlockchainService;
-      } catch (e) {
-        console.error('初始化服务失败', e);
-        setError(`初始化失败: ${e instanceof Error ? e.message : String(e)}`);
-      }
-    }
-  }, []);
-
-  const handleConnect = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      if (services?.walletService) {
-        const addr = await services.walletService.connectWallet();
-        setAddress(addr);
-      } else {
-        throw new Error('钱包服务未初始化');
-      }
-    } catch (e: any) {
-      console.error(e);
-      setError(`连接失败: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleProcessTransfer = async () => {
-    if (!address) {
-      setError('请先连接钱包');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      if (services?.txService) {
-        const transferParams = {
-          tokenAddress: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          to: '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14',
-          amount: BigInt('50000000000000000000'),
-        };
-        
-        // 使用TransactionService处理转账
-        const res = await services.txService.prepareRelayedPayment(
-          transferParams.to,
-          transferParams.amount,
-          transferParams.tokenAddress
-        );
-        setResult(res);
-        alert('MetaTx已生成！');
-      } else {
-        throw new Error('交易服务未初始化');
-      }
-    } catch (e: any) {
-      console.error(e);
-      setError(`操作失败: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 丰富日志示例
+  if (sdk) console.log('[首页] Web3Delegate SDK 已初始化:', sdk);
+  if (address) console.log('[首页] 当前钱包地址:', address);
 
   return (
-    <Layout title="支付委托演示">
+    <Layout>
       <div className="container">
         <h1 style={{ textAlign: 'center', marginBottom: '40px' }}>Web3 支付委托演示</h1>
-        
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <p style={{ fontSize: '18px', color: '#666', lineHeight: '1.6' }}>
             这是一个基于重构后架构的Web3支付演示应用，提供了多种不同的支付场景和管理功能：
           </p>
         </div>
-
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
@@ -141,7 +49,6 @@ export default function Home() {
               开始直接支付
             </Link>
           </div>
-
           {/* Meta Transaction卡片 */}
           <div className="card" style={{ textAlign: 'center', padding: '30px' }}>
             <h2 style={{ color: '#52c41a', marginBottom: '20px' }}>Meta Transaction</h2>
@@ -163,7 +70,6 @@ export default function Home() {
               开始Meta Transaction
             </Link>
           </div>
-
           {/* 金库操作卡片 */}
           <div className="card" style={{ textAlign: 'center', padding: '30px' }}>
             <h2 style={{ color: '#fa8c16', marginBottom: '20px' }}>金库操作</h2>
@@ -185,7 +91,6 @@ export default function Home() {
               开始金库操作
             </Link>
           </div>
-
           {/* 商家管理卡片 */}
           <div className="card" style={{ textAlign: 'center', padding: '30px' }}>
             <h2 style={{ color: '#722ed1', marginBottom: '20px' }}>商家管理</h2>
@@ -208,7 +113,6 @@ export default function Home() {
               商家管理
             </Link>
           </div>
-
           {/* 商家配置卡片 */}
           <div className="card" style={{ textAlign: 'center', padding: '30px' }}>
             <h2 style={{ color: '#eb2f96', marginBottom: '20px' }}>商家配置</h2>
@@ -230,7 +134,6 @@ export default function Home() {
               商家配置
             </Link>
           </div>
-
           {/* Relayer服务卡片 */}
           <div className="card" style={{ textAlign: 'center', padding: '30px' }}>
             <h2 style={{ color: '#13c2c2', marginBottom: '20px' }}>中继器服务</h2>
@@ -254,7 +157,6 @@ export default function Home() {
             </Link>
           </div>
         </div>
-
         <div className="card" style={{ backgroundColor: '#f6f8fa', padding: '30px' }}>
           <h3 style={{ marginBottom: '20px' }}>架构特点</h3>
           <div style={{ 
@@ -288,7 +190,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-
         <div style={{ textAlign: 'center', marginTop: '40px' }}>
           <p style={{ color: '#666' }}>
             选择上方任意一个场景开始体验Web3支付委托功能

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RelayerService, OperationType } from '../../dist';
 import { SimpleRelayerRequest } from '../../dist/core/relayer-service';
 import Layout from '../components/Layout';
+import { useWeb3 } from '../context/Web3Context';
 
 interface RelayerParams {
   requestData: string;
@@ -9,7 +10,7 @@ interface RelayerParams {
 }
 
 export default function Relayer() {
-  const [address, setAddress] = useState<string>('');
+  const { address, config } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -19,41 +20,14 @@ export default function Relayer() {
     operationType: OperationType.Payment
   });
 
+  // 自动初始化 relayerService
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const initRelayerService = async () => {
-        try {
-          const config = { 
-            useMetaMask: true,
-            publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-            contractAddress: '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14'
-          };
-          const service = new RelayerService(config);
-          setRelayerService(service);
-        } catch (e) {
-          console.error('初始化RelayerService失败', e);
-        }
-      };
-      
-      initRelayerService();
+    if (address) {
+      setRelayerService(new RelayerService(config));
+    } else {
+      setRelayerService(null);
     }
-  }, []);
-
-  const handleConnect = async () => {
-    if (!relayerService) return;
-    
-    setLoading(true);
-    setError('');
-    try {
-      const addr = await relayerService.connectWallet();
-      setAddress(addr);
-    } catch (e: any) {
-      console.error(e);
-      setError(`连接失败: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [address, config]);
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setRelayerParams({
@@ -175,17 +149,6 @@ export default function Relayer() {
         <h1 style={{ textAlign: 'center', marginBottom: '30px' }}>中继器服务</h1>
         
         <div className="card">
-          <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-            <button 
-              className="btn btn-primary"
-              onClick={handleConnect} 
-              disabled={loading}
-              style={{ marginRight: '10px' }}
-            >
-              {loading ? '处理中...' : '连接钱包'}
-            </button>
-          </div>
-
           {address && (
             <div style={{ 
               padding: '10px', 

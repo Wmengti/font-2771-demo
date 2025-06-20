@@ -11,12 +11,12 @@ export declare class WalletService {
      * 初始化客户端
      * @returns 是否初始化成功
      */
-    protected initializeClients(): Promise<boolean>;
+    protected initializeClients(timeoutMs?: number): Promise<boolean>;
     /**
      * 连接钱包
      * @returns 连接的地址
      */
-    connectWallet(): Promise<string>;
+    connectWallet(timeoutMs?: number): Promise<string>;
     /**
      * 检查是否已连接钱包
      * @returns 是否已连接
@@ -51,10 +51,10 @@ export declare class WalletService {
      * 确保钱包已连接，如果未连接则尝试连接
      * @returns 是否已连接
      */
-    ensureConnected(): Promise<boolean>;
+    ensureConnected(timeoutMs?: number): Promise<boolean>;
     /**
      * 确保客户端已初始化，如果未初始化则尝试初始化
      * @returns 是否已初始化
      */
-    ensureInitialized(): Promise<boolean>;
+    ensureInitialized(timeoutMs?: number): Promise<boolean>;
 }

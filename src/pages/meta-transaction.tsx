@@ -21,7 +21,7 @@ export default function MetaTransaction() {
   const [services, setServices] = useState<any>(null);
   
   const [formParams, setFormParams] = useState({
-    tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
+    tokenAddress: '0xc6AdC53079AC67aD9A03Cbd0978CB9aF63AdFda1',
     to: '0xa8666442fA7583F783a169CC9F5449ec660295E8',
     amount: '50000000000000000000', // 50 tokens
     spender: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA', // 合约地址作为spender
@@ -38,9 +38,7 @@ export default function MetaTransaction() {
         
         // 创建区块链服务
         const config = {
-          useMetaMask: true,  // 确保设置为true
-          publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          contractAddress: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA'
+    
         };
         
         // 创建服务实例
@@ -89,9 +87,20 @@ export default function MetaTransaction() {
     }));
   };
 
+  const isValidAddress = (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr);
+
   const handleApprove = async () => {
+    console.log('[MetaTx] approveToken 参数:', formParams, 'address:', address);
     if (!services?.txService || !address) {
       setError('请先连接钱包');
+      return;
+    }
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.spender)) {
+      alert('spender地址不能为空且必须为42位0x开头的地址');
       return;
     }
 
@@ -114,8 +123,17 @@ export default function MetaTransaction() {
   };
 
   const handlePrepareMetaTransaction = async () => {
+    console.log('[MetaTx] prepareRelayedPayment 参数:', formParams, 'address:', address);
     if (!services?.txService || !address) {
       setError('请先连接钱包');
+      return;
+    }
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.to)) {
+      alert('接收方地址不能为空且必须为42位0x开头的地址');
       return;
     }
 
@@ -125,8 +143,8 @@ export default function MetaTransaction() {
       const relayedData = await services.txService.prepareRelayedPayment(
         formParams.to,
         BigInt(formParams.amount),
-        formParams.tokenAddress,
         BigInt(formParams.seq),
+        formParams.tokenAddress,
         parseInt(formParams.deadlineSeconds)
       );
       
@@ -141,8 +159,17 @@ export default function MetaTransaction() {
   };
 
   const checkAllowance = async () => {
+    console.log('[MetaTx] checkAllowance 参数:', formParams, 'address:', address);
     if (!services?.txService || !address) {
       setError('请先连接钱包');
+      return;
+    }
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.spender)) {
+      alert('spender地址不能为空且必须为42位0x开头的地址');
       return;
     }
 

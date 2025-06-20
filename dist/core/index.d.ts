@@ -4,6 +4,8 @@ import { DirectPayment } from './operations/direct-payment';
 import { RelayedPayment, RelayedRequestData } from './operations/relayed-payment';
 import { VaultOperations } from './operations/vault';
 import type { Hash } from 'viem';
+import { MerchantConfigManager } from './merchant-config-manager';
+import { TransactionService } from './transaction';
 /**
  * Web3Delegate主类
  * 提供统一的接口来访问所有区块链操作功能
@@ -14,6 +16,8 @@ export declare class Web3Delegate {
     readonly directPayment: DirectPayment;
     readonly relayedPayment: RelayedPayment;
     readonly vault: VaultOperations;
+    readonly merchantConfigManager: MerchantConfigManager;
+    readonly transactionService: TransactionService;
     constructor(config?: BlockchainConfig);
     /**
      * 连接钱包
@@ -72,26 +76,35 @@ export declare class Web3Delegate {
      * 准备代付gas的支付请求（仅签名，不发送）
      * @param to 接收方地址
      * @param amount 支付金额
-     * @param tokenAddress 代币地址，如不提供则为原生代币
      * @param seq 序列号，默认为当前时间戳
+     * @param tokenAddress 代币地址，如不提供则为原生代币
      * @param deadlineSeconds 过期时间（秒），默认3600秒
      * @returns 包含签名的请求数据
      */
-    prepareRelayedPayment(to: string, amount: bigint, tokenAddress?: string, seq?: bigint, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    prepareRelayedPayment(to: string, amount: bigint, seq: bigint, tokenAddress?: string, deadlineSeconds?: number): Promise<RelayedRequestData>;
     /**
      * 向金库存款（用户付gas）
+     * @param merchantId 商户ID
      * @param tokenAddress 代币地址
      * @param amount 存款金额
      * @returns 交易哈希
      */
-    depositToVault(tokenAddress: string, amount: bigint): Promise<Hash>;
+    depositToVault(merchantId: string, tokenAddress: string, amount: bigint): Promise<Hash>;
     /**
      * 从金库提现（用户付gas）
+     * @param merchantId 商户ID
      * @param tokenAddress 代币地址
      * @param amount 提现金额
      * @returns 交易哈希
      */
-    withdrawFromVault(tokenAddress: string, amount: bigint): Promise<Hash>;
+    withdrawFromVault(merchantId: string, tokenAddress: string, amount: bigint): Promise<Hash>;
+    /**
+     * 查询金库余额
+     * @param merchantId 商户ID
+     * @param tokenAddress 代币地址
+     * @returns 余额
+     */
+    getUserBalance(userAddress: string, merchantId: string, tokenAddress: string): Promise<bigint>;
     /**
      * 用户直接从金库消费（自己付gas）
      * @param merchantId 商家ID
@@ -99,10 +112,12 @@ export declare class Web3Delegate {
      * @param amount 消费金额
      * @param voucherId 代金券ID
      * @param pointToUse 使用的积分
+     * @param idx 由前端传入
      * @param seq 序列号
+     * @param recipient 接收方地址
      * @returns 交易哈希
      */
-    consumeFromVault(merchantId: string, tokenAddress: string, amount: bigint, voucherId?: bigint, pointToUse?: bigint, seq?: bigint): Promise<Hash>;
+    consumeFromVault(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, idx: bigint, seq?: bigint, recipient?: string): Promise<Hash>;
     /**
      * 准备代付gas的金库消费请求（仅签名，不发送）
      * @param merchantId 商家ID
@@ -110,27 +125,31 @@ export declare class Web3Delegate {
      * @param amount 消费金额
      * @param voucherId 代金券ID
      * @param pointToUse 使用的积分
+     * @param idx 由前端传入
      * @param seq 序列号
+     * @param recipient 接收方地址
      * @param deadlineSeconds 过期时间（秒）
      * @returns 包含签名的请求数据
      */
-    prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId?: bigint, pointToUse?: bigint, seq?: bigint, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, idx: bigint, seq?: bigint, recipient?: string, deadlineSeconds?: bigint): Promise<RelayedRequestData>;
     /**
      * 准备代付gas的金库存款请求（仅签名，不发送）
+     * @param merchantId 商户ID
      * @param tokenAddress 代币地址
      * @param amount 存款金额
      * @param deadlineSeconds 过期时间（秒）
      * @returns 包含签名的请求数据
      */
-    prepareRelayedDeposit(tokenAddress: string, amount: bigint, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    prepareRelayedDeposit(merchantId: string, tokenAddress: string, amount: bigint, deadlineSeconds?: bigint): Promise<RelayedRequestData>;
     /**
-     * 准备代付gas的金库提款请求（仅签名，不发送）
+     * 准备代付gas的金库提现请求（仅签名，不发送）
+     * @param merchantId 商户ID
      * @param tokenAddress 代币地址
-     * @param amount 提款金额
+     * @param amount 提现金额
      * @param deadlineSeconds 过期时间（秒）
      * @returns 包含签名的请求数据
      */
-    prepareRelayedWithdraw(tokenAddress: string, amount: bigint, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    prepareRelayedWithdraw(merchantId: string, tokenAddress: string, amount: bigint, deadlineSeconds?: bigint): Promise<RelayedRequestData>;
 }
 export type { RelayedRequestData } from './operations/relayed-payment';
 export type { ForwardRequestData } from './signing';

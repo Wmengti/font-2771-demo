@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useWeb3 } from '../context/Web3Context';
 
 interface LayoutProps {
   children: ReactNode;
@@ -8,6 +9,8 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, title = '支付委托演示' }: LayoutProps) {
+  const { address, chainId, isConnecting, error, connectWallet, resetError } = useWeb3();
+
   return (
     <div>
       <Head>
@@ -127,7 +130,29 @@ export default function Layout({ children, title = '支付委托演示' }: Layou
               商户配置
             </Link>
           </nav>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {address ? (
+              <span style={{ color: '#fff', fontSize: 14 }}>
+                已连接
+              </span>
+            ) : (
+              <button
+                className="btn btn-primary"
+                onClick={connectWallet}
+                disabled={isConnecting}
+                style={{ fontSize: 14 }}
+              >
+                {isConnecting ? '连接中...' : '连接钱包'}
+              </button>
+            )}
+          </div>
         </div>
+        {error && (
+          <div style={{ background: '#fff2f0', color: '#f5222d', padding: 8, textAlign: 'center' }}>
+            {error}
+            <button onClick={resetError} style={{ marginLeft: 16, color: '#1677ff', background: 'none', border: 'none', cursor: 'pointer' }}>关闭</button>
+          </div>
+        )}
       </header>
 
       <main className="container">

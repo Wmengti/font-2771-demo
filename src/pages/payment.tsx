@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
+import { useWeb3 } from '../context/Web3Context';
 
 // 定义RelayedRequestData类型
 interface RelayedRequestData {
@@ -22,29 +23,17 @@ enum PaymentTab {
 export default function Payment() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<PaymentTab>(PaymentTab.DirectPayment);
-  const [address, setAddress] = useState<string>('');
+  const { sdk, address, isConnecting, error, connectWallet } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [services, setServices] = useState<any>(null);
-  // 添加授权状态
-  const [allowanceStatus, setAllowanceStatus] = useState<{
-    checked: boolean;
-    sufficient: boolean;
-    value: string;
-  }>({
-    checked: false,
-    sufficient: false,
-    value: '0'
-  });
-  
+  const [allowanceStatus, setAllowanceStatus] = useState({ checked: false, sufficient: false, value: '0' });
   const [formParams, setFormParams] = useState({
-    tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
-    to: '0xa8666442fA7583F783a169CC9F5449ec660295E8',
-    amount: '50000000000000000000', // 50 tokens
-    spender: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA', // 合约地址作为spender
+    tokenAddress: '',
+    to: '',
+    amount: '',
+    spender: '',
     seq: String(Math.floor(Date.now() / 1000)),
-    deadlineSeconds: '3600' // 1小时过期时间
+    deadlineSeconds: '3600'
   });
 
   // 从URL参数读取tab
@@ -59,67 +48,6 @@ export default function Payment() {
     }
   }, [router.isReady, router.query]);
 
-  // 初始化
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        // 导入需要的服务
-        const { WalletService, TransactionService, BlockchainService } = require('../../dist');
-        
-        // 创建钱包服务
-        const walletService = new WalletService({ useMetaMask: true });
-        
-        // 创建区块链服务
-        const config = {
-          useMetaMask: true,  // 确保设置为true
-          publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          contractAddress: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA'
-        };
-        
-        // 创建区块链服务
-        const blockchainService = new BlockchainService(config);
-        
-        // 创建交易服务
-        const txService = new TransactionService(blockchainService);
-        
-        // 保存服务实例
-        setServices({
-          walletService,
-          blockchainService,
-          txService
-        });
-        
-        // 设置默认 seq 为当前时间戳
-        setFormParams(prev => ({
-          ...prev,
-          seq: String(Math.floor(Date.now() / 1000))
-        }));
-      } catch (error) {
-        console.error('初始化服务失败', error);
-        setError(`初始化失败: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
-  }, []);
-
-  const handleConnect = async () => {
-    if (!services?.walletService) {
-      setError('服务未初始化');
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-    try {
-      const addr = await services.walletService.connectWallet();
-      setAddress(addr);
-    } catch (e: any) {
-      console.error(e);
-      setError(`连接失败: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormParams(prev => ({
@@ -133,62 +61,37 @@ export default function Payment() {
     setResult(null); // 切换Tab时清空结果
   };
 
-  const handleApprove = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const txHash = await services.txService.approveToken(
-        formParams.tokenAddress,
-        formParams.spender,
-        BigInt(formParams.amount)
-      );
-      
-      setResult({ type: 'approve', txHash });
-      alert(`授权成功！交易哈希: ${txHash}`);
-    } catch (e: any) {
-      console.error(e);
-      setError(`授权失败: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isValidAddress = (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr);
 
   const checkAllowance = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
+    console.log('[支付] checkAllowance 参数:', formParams, 'address:', address);
+    if (!sdk || !address) {
+      alert('请先连接钱包');
       return;
     }
-
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.spender)) {
+      alert('spender地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
     setLoading(true);
-    setError('');
     try {
-      const allowance = await services.txService.checkAllowance(
+      const allowance = await sdk.checkAllowance(
         formParams.tokenAddress,
         address,
         formParams.spender
       );
-      
       const allowanceStr = allowance.toString();
       const isAllowanceSufficient = BigInt(allowanceStr) >= BigInt(formParams.amount);
-      
-      setAllowanceStatus({
-        checked: true,
-        sufficient: isAllowanceSufficient,
-        value: allowanceStr
-      });
-      
+      setAllowanceStatus({ checked: true, sufficient: isAllowanceSufficient, value: allowanceStr });
       setResult({ type: 'allowance', value: allowanceStr });
       alert(`当前授权额度: ${allowanceStr} Wei${isAllowanceSufficient ? '，授权充足' : '，授权不足，请先授权'}`);
-      
       return isAllowanceSufficient;
     } catch (e: any) {
-      console.error(e);
-      setError(`查询失败: ${e.message}`);
+      alert(`查询失败: ${e.message}`);
       return false;
     } finally {
       setLoading(false);
@@ -196,97 +99,148 @@ export default function Payment() {
   };
 
   const handleDirectPay = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
+    console.log('[支付] userPayDirect 参数:', formParams, 'address:', address);
+    if (!sdk || !address) {
+      alert('请先连接钱包');
       return;
     }
-
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.to)) {
+      alert('接收方地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.spender)) {
+      alert('spender地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
     setLoading(true);
-    setError('');
-    
     try {
       // 先检查授权额度
       const isAllowanceSufficient = await checkAllowance();
-      
       if (!isAllowanceSufficient) {
         // 如果授权不足，提示用户先授权
         if (confirm('授权额度不足，需要先进行授权操作。点击确定进行授权。')) {
           try {
-            const txHash = await services.txService.approveToken(
+            const txHash = await sdk.approveToken(
               formParams.tokenAddress,
               formParams.spender,
               BigInt(formParams.amount)
             );
-            
             alert(`授权成功！交易哈希: ${txHash}，请等待授权交易确认后再进行支付。`);
             setResult({ type: 'approve', txHash });
-            
-            // 更新授权状态
             setAllowanceStatus({
               checked: true,
               sufficient: true,
               value: formParams.amount
             });
-            
-            // 授权后不立即支付，因为需要等待授权交易确认
             setLoading(false);
             return;
           } catch (e: any) {
-            console.error(e);
-            setError(`授权失败: ${e.message}`);
+            alert(`授权失败: ${e.message}`);
             setLoading(false);
             return;
           }
         } else {
-          // 用户取消授权
           setLoading(false);
           return;
         }
       }
-      
       // 授权充足，继续支付
-      const txHash = await services.txService.userPayDirect(
+      const txHash = await sdk.userPayDirect(
         formParams.to,
         BigInt(formParams.amount),
         formParams.tokenAddress,
         BigInt(formParams.seq)
       );
-      
       setResult({ type: 'direct_payment', txHash });
       alert(`支付成功！交易哈希: ${txHash}`);
     } catch (e: any) {
-      console.error(e);
-      setError(`支付失败: ${e.message}`);
+      alert(`支付失败: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    console.log('[支付] approveToken 参数:', formParams, 'address:', address);
+    if (!sdk || !address) {
+      alert('请先连接钱包');
+      return;
+    }
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.spender)) {
+      alert('spender地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    setLoading(true);
+    try {
+      const txHash = await sdk.approveToken(
+        formParams.tokenAddress,
+        formParams.spender,
+        BigInt(formParams.amount)
+      );
+      setResult({ type: 'approve', txHash });
+      alert(`授权成功！交易哈希: ${txHash}`);
+    } catch (e: any) {
+      alert(`授权失败: ${e.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   const handlePrepareMetaTransaction = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
+    console.log('[MetaTx] prepareRelayedPayment 参数:', formParams, 'address:', address);
+    if (!sdk || !address) {
+      alert('请先连接钱包');
       return;
     }
-
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.to)) {
+      alert('接收方地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
     setLoading(true);
-    setError('');
     try {
-      const relayedData = await services.txService.prepareRelayedPayment(
-        formParams.to,
-        BigInt(formParams.amount),
-        formParams.tokenAddress,
-        BigInt(formParams.seq),
-        parseInt(formParams.deadlineSeconds)
+      // 参数校验与日志
+      const to = formParams.to;
+      const amount = BigInt(formParams.amount);
+      const tokenAddress = formParams.tokenAddress;
+      const seq = BigInt(formParams.seq);
+      const deadline = parseInt(formParams.deadlineSeconds);
+      if (!to.startsWith('0x') || to.length !== 42) throw new Error('接收方地址格式错误');
+      if (!tokenAddress.startsWith('0x') || tokenAddress.length !== 42) throw new Error('代币地址格式错误');
+      if (amount <= 0n) throw new Error('金额必须大于0');
+      if (seq <= 0n) throw new Error('序列号必须大于0');
+      if (isNaN(deadline) || deadline <= 0) throw new Error('过期时间必须为正整数');
+      console.log('前端准备代付gas支付请求:');
+      console.log('接收方:', to);
+      console.log('金额:', amount.toString());
+      console.log('代币地址:', tokenAddress);
+      console.log('序列号:', seq.toString());
+      console.log('过期时间(秒):', deadline);
+      const relayedData = await sdk.prepareRelayedPayment(
+        to,
+        amount,
+        seq,
+        tokenAddress,
+        deadline
       );
-      
       setResult({ 
         type: 'meta_transaction', 
         data: relayedData 
       });
       alert('Meta Transaction签名成功！');
     } catch (e: any) {
-      console.error(e);
-      setError(`签名失败: ${e.message}`);
+      alert(`签名失败: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -306,14 +260,6 @@ export default function Payment() {
         
         <div className="card">
           <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-            <button 
-              className="btn btn-primary"
-              onClick={handleConnect} 
-              disabled={loading}
-              style={{ marginRight: '10px' }}
-            >
-              {loading ? '处理中...' : '连接钱包'}
-            </button>
             <button
               className="btn btn-secondary"
               onClick={checkAllowance}
@@ -344,6 +290,32 @@ export default function Payment() {
               marginBottom: '20px'
             }}>
               <p style={{ margin: '0', color: '#f5222d' }}>{error}</p>
+              {(error.includes('MetaMask') || error.includes('连接') || error.includes('超时')) && (
+                <div style={{ marginTop: '10px' }}>
+                  <button 
+                    className="btn btn-danger"
+                    onClick={() => {
+                      // 重置MetaMask状态并刷新页面
+                      if (window.ethereum) {
+                        try {
+                          console.log('正在重置MetaMask连接状态...');
+                          window.localStorage.removeItem('WALLET_CONNECT');
+                          window.localStorage.removeItem('WALLET_CONNECTED');
+                          window.location.reload();
+                        } catch (e) {
+                          console.error('重置失败:', e);
+                          window.location.reload(); // 无论如何都刷新页面
+                        }
+                      } else {
+                        window.location.reload();
+                      }
+                    }}
+                    style={{ width: '100%', fontSize: '14px' }}
+                  >
+                    重置MetaMask状态并刷新页面
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

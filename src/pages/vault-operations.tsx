@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Layout from '../components/Layout';
+import { useWeb3 } from '../context/Web3Context';
 
 // 定义RelayedRequestData类型
 interface RelayedRequestData {
@@ -14,14 +15,16 @@ interface RelayedRequestData {
 }
 
 interface DepositParams {
+  merchantId: string;
   tokenAddress: string;
   amount: string;
 }
 
 interface WithdrawParams {
+  merchantId: string;
   tokenAddress: string;
   amount: string;
-  deadlineSeconds: string; // 添加过期时间参数
+  deadlineSeconds: string;
 }
 
 interface ConsumeParams {
@@ -32,80 +35,50 @@ interface ConsumeParams {
   pointToUse: string;
   seq: string;
   deadlineSeconds: string;
+  recipient: string;
+  idx: string;
 }
 
 export default function VaultOperations() {
-  const [address, setAddress] = useState<string>('');
+  const { sdk, address } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [services, setServices] = useState<any>(null);
   
   const [depositParams, setDepositParams] = useState<DepositParams>({
-    tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
+    merchantId: '0x00000000000000000000000000000000000000000000000000000063686c6f65',
+    tokenAddress: '0xc6AdC53079AC67aD9A03Cbd0978CB9aF63AdFda1',
     amount: '1000000000000000000'
   });
 
   const [withdrawParams, setWithdrawParams] = useState<WithdrawParams>({
-    tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
+    merchantId: '0x00000000000000000000000000000000000000000000000000000063686c6f65',
+    tokenAddress: '0xc6AdC53079AC67aD9A03Cbd0978CB9aF63AdFda1',
     amount: '1000000000000000000',
-    deadlineSeconds: '3600' // 默认1小时
+    deadlineSeconds: '3600'
   });
 
   const [consumeParams, setConsumeParams] = useState<ConsumeParams>({
-    merchantId: '0x0000000000000000000000000000000000000000000000000000000000000001',
-    tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
+    merchantId: '0x00000000000000000000000000000000000000000000000000000063686c6f65',
+    tokenAddress: '0xc6AdC53079AC67aD9A03Cbd0978CB9aF63AdFda1',
     amount: '1000000000000000000',
     voucherId: '0',
     pointToUse: '0',
     seq: String(Math.floor(Date.now() / 1000)),
-    deadlineSeconds: '3600'
+    deadlineSeconds: '3600',
+    recipient: '',
+    idx: '0'
   });
 
   // 初始化
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        // 导入需要的服务
-        const { WalletService, TransactionService, BlockchainService } = require('../../dist');
-        
-        // 创建区块链服务
-        const config = {
-          useMetaMask: true,  // 确保设置为true
-          publicKey: '0x7A135109F5aAC103045342237511ae658ecFc1A7',
-          contractAddress: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA'
-        };
-        
-        // 创建服务实例
-        const blockchainService = new BlockchainService(config);
-        const txService = new TransactionService(blockchainService);
-        
-        // 保存服务实例
-        setServices({
-          blockchainService,
-          txService
-        });
-        
-        // 设置默认 seq 为当前时间戳
-        setConsumeParams(prev => ({
-          ...prev,
-          seq: String(Math.floor(Date.now() / 1000))
-        }));
-      } catch (error) {
-        console.error('初始化服务失败', error);
-        setError(`初始化失败: ${error instanceof Error ? error.message : String(error)}`);
-      }
-    }
-  }, []);
-
   const handleConnect = async () => {
-    if (!services?.blockchainService) return;
+    if (!sdk) return;
     
     setLoading(true);
     setError('');
     try {
-      const addr = await services.blockchainService.connectWallet();
-      setAddress(addr);
+      const addr = await sdk.connectWallet();
     } catch (e: any) {
       console.error(e);
       setError(`连接失败: ${e.message}`);
@@ -132,17 +105,16 @@ export default function VaultOperations() {
 
   // 存款前先授权
   const handleApproveForDeposit = async () => {
-    if (!services?.txService || !address) {
+    if (!sdk || !address) {
       setError('请先连接钱包');
       return;
     }
-
     setLoading(true);
     setError('');
     try {
       // 授权给UnifiedVault合约
       const vaultAddress = '0x0dfe1ad373bfcc5b32d22d7da81cac97ef72d7da'; // UnifiedVault地址
-      const txHash = await services.txService.approveToken(
+      const txHash = await sdk.approveToken(
         depositParams.tokenAddress,
         vaultAddress,
         BigInt(depositParams.amount)
@@ -160,19 +132,18 @@ export default function VaultOperations() {
 
   // 存款操作
   const handleDeposit = async () => {
-    if (!services?.txService || !address) {
+    if (!sdk || !address) {
       setError('请先连接钱包');
       return;
     }
-
     setLoading(true);
     setError('');
     try {
-      const txHash = await services.txService.depositToVault(
+      const txHash = await sdk.depositToVault(
+        depositParams.merchantId,
         depositParams.tokenAddress,
         BigInt(depositParams.amount)
       );
-      
       setResult({ type: 'deposit', txHash });
       alert(`存款成功！交易哈希: ${txHash}`);
     } catch (e: any) {
@@ -185,7 +156,7 @@ export default function VaultOperations() {
 
   // 提现操作
   const handleWithdraw = async () => {
-    if (!services?.txService || !address) {
+    if (!sdk || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -193,11 +164,11 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const txHash = await services.txService.withdrawFromVault(
+      const txHash = await sdk.withdrawFromVault(
+        withdrawParams.merchantId,
         withdrawParams.tokenAddress,
         BigInt(withdrawParams.amount)
       );
-      
       setResult({ type: 'withdraw', txHash });
       alert(`提现成功！交易哈希: ${txHash}`);
     } catch (e: any) {
@@ -210,21 +181,26 @@ export default function VaultOperations() {
 
   // 直接消费（用户付gas）
   const handleConsumeDirect = async () => {
-    if (!services?.txService || !address) {
+    if (!sdk || !address) {
       setError('请先连接钱包');
       return;
     }
-
+    if (!consumeParams.recipient) {
+      setError('请输入收款地址');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
-      const txHash = await services.txService.consumeFromVault(
+      const txHash = await sdk.consumeFromVault(
         consumeParams.merchantId,
         consumeParams.tokenAddress,
         BigInt(consumeParams.amount),
         consumeParams.voucherId ? BigInt(consumeParams.voucherId) : 0n,
         consumeParams.pointToUse ? BigInt(consumeParams.pointToUse) : 0n,
-        BigInt(consumeParams.seq)
+        BigInt(consumeParams.idx),
+        BigInt(consumeParams.seq),
+        consumeParams.recipient
       );
       
       setResult({ type: 'consume_direct', txHash });
@@ -239,7 +215,7 @@ export default function VaultOperations() {
 
   // 消费前授权（如果需要）
   const handleApproveForConsume = async () => {
-    if (!services?.txService || !address) {
+    if (!sdk || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -249,7 +225,7 @@ export default function VaultOperations() {
     try {
       // 授权给UnifiedVault合约
       const vaultAddress = '0x0dfe1ad373bfcc5b32d22d7da81cac97ef72d7da'; // UnifiedVault地址
-      const txHash = await services.txService.approveToken(
+      const txHash = await sdk.approveToken(
         consumeParams.tokenAddress,
         vaultAddress,
         BigInt(consumeParams.amount)
@@ -265,9 +241,9 @@ export default function VaultOperations() {
     }
   };
 
-  // 准备Meta消费（代付gas）
-  const handlePrepareMetaConsume = async () => {
-    if (!services?.txService || !address) {
+  // 准备Meta存款（代付gas）
+  const handlePrepareMetaDeposit = async () => {
+    if (!sdk || !address) {
       setError('请先连接钱包');
       return;
     }
@@ -275,14 +251,90 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const relayedData = await services.txService.prepareRelayedConsume(
-        consumeParams.merchantId,
-        consumeParams.tokenAddress,
-        BigInt(consumeParams.amount),
-        consumeParams.voucherId ? BigInt(consumeParams.voucherId) : 0n,
-        consumeParams.pointToUse ? BigInt(consumeParams.pointToUse) : 0n,
-        BigInt(consumeParams.seq),
-        parseInt(consumeParams.deadlineSeconds)
+      const relayedData = await sdk.prepareRelayedDeposit(
+        depositParams.merchantId,
+        depositParams.tokenAddress,
+        BigInt(depositParams.amount),
+        BigInt(3600)
+      );
+      setResult({ type: 'meta_deposit', data: relayedData });
+      alert('Meta存款签名成功！');
+    } catch (e: any) {
+      console.error(e);
+      setError(`签名失败: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 准备Meta提现（代付gas）
+  const handlePrepareMetaWithdraw = async () => {
+    if (!sdk || !address) {
+      setError('请先连接钱包');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      const relayedData = await sdk.prepareRelayedWithdraw(
+        withdrawParams.merchantId,
+        withdrawParams.tokenAddress,
+        BigInt(withdrawParams.amount),
+        BigInt(withdrawParams.deadlineSeconds)
+      );
+      setResult({ type: 'meta_withdraw', data: relayedData });
+      alert('Meta提现签名成功！');
+    } catch (e: any) {
+      console.error(e);
+      setError(`签名失败: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 准备Meta消费（代付gas）
+  const handlePrepareMetaConsume = async () => {
+    if (!sdk || !address) {
+      setError('请先连接钱包');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      // 参数校验与日志
+      const merchantId = consumeParams.merchantId;
+      const tokenAddress = consumeParams.tokenAddress;
+      const amount = BigInt(consumeParams.amount);
+      const voucherId = consumeParams.voucherId ? BigInt(consumeParams.voucherId) : 0n;
+      const pointToUse = consumeParams.pointToUse ? BigInt(consumeParams.pointToUse) : 0n;
+      const idx = consumeParams.idx ? BigInt(consumeParams.idx) : 0n;
+      const seq = consumeParams.seq ? BigInt(consumeParams.seq) : undefined;
+      const recipient = consumeParams.recipient;
+      const deadlineSeconds = consumeParams.deadlineSeconds ? BigInt(consumeParams.deadlineSeconds) : 3600n;
+      
+      console.log('准备Meta消费请求:');
+      console.log('商户ID:', merchantId);
+      console.log('代币地址:', tokenAddress);
+      console.log('金额:', amount.toString());
+      console.log('代金券ID:', voucherId?.toString() || '无');
+      console.log('使用积分:', pointToUse?.toString() || '无');
+      console.log('促销档位编号idx:', idx.toString());
+      console.log('序列号:', seq?.toString() || '无');
+      console.log('收款地址:', recipient);
+      console.log('过期时间(秒):', deadlineSeconds.toString());
+      
+      const relayedData = await sdk.prepareRelayedConsume(
+        merchantId,
+        tokenAddress,
+        amount,
+        voucherId,
+        pointToUse,
+        idx,
+        seq,
+        recipient,
+        deadlineSeconds
       );
       
       setResult({ type: 'meta_consume', data: relayedData });
@@ -295,27 +347,20 @@ export default function VaultOperations() {
     }
   };
 
-  // 检查金库余额
+  // 查询金库余额
   const handleCheckVaultBalance = async () => {
-    if (!services?.blockchainService || !address) {
+    if (!sdk || !address) {
       setError('请先连接钱包');
       return;
     }
-
     setLoading(true);
     setError('');
     try {
-      // 调用合约查询余额
-      const vaultAddress = '0x9fAb129F2a9CC1756772B73797ec4F37B86Ffc14'; // UnifiedVault地址
-      const abi = [{"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"address","name":"token","type":"address"}],"name":"getUserBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}];
-      
-      const balance = await services.blockchainService.readContract(
-        vaultAddress,
-        abi,
-        'getUserBalance',
-        [address, depositParams.tokenAddress]
+      const balance = await sdk.vault.getUserBalance(
+        address,
+        depositParams.merchantId,
+        depositParams.tokenAddress
       );
-      
       setResult({ type: 'balance', value: balance.toString() });
       alert(`金库余额: ${balance.toString()} Wei`);
     } catch (e: any) {
@@ -333,58 +378,6 @@ export default function VaultOperations() {
     }
   };
 
-  // 准备Meta存款（代付gas）
-  const handlePrepareMetaDeposit = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const relayedData = await services.txService.prepareRelayedDeposit(
-        depositParams.tokenAddress,
-        BigInt(depositParams.amount),
-        3600 // 默认1小时过期
-      );
-      
-      setResult({ type: 'meta_deposit', data: relayedData });
-      alert('Meta存款签名成功！');
-    } catch (e: any) {
-      console.error(e);
-      setError(`签名失败: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 准备Meta提现（代付gas）
-  const handlePrepareMetaWithdraw = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      const relayedData = await services.txService.prepareRelayedWithdraw(
-        withdrawParams.tokenAddress,
-        BigInt(withdrawParams.amount),
-        parseInt(withdrawParams.deadlineSeconds)
-      );
-      
-      setResult({ type: 'meta_withdraw', data: relayedData });
-      alert('Meta提现签名成功！');
-    } catch (e: any) {
-      console.error(e);
-      setError(`签名失败: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <Layout title="金库操作 - Vault Operations">
       <div className="container">
@@ -392,14 +385,6 @@ export default function VaultOperations() {
         
         <div className="card">
           <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-            <button 
-              className="btn btn-primary"
-              onClick={handleConnect} 
-              disabled={loading}
-              style={{ marginRight: '10px' }}
-            >
-              {loading ? '处理中...' : '连接钱包'}
-            </button>
             <button 
               className="btn btn-secondary"
               onClick={handleCheckVaultBalance}
@@ -436,6 +421,18 @@ export default function VaultOperations() {
           {/* 存款操作 */}
           <div className="card" style={{ margin: '20px 0', backgroundColor: '#f0f9ff' }}>
             <h3>存款操作</h3>
+            <div className="form-group">
+              <label className="form-label">商家ID</label>
+              <input
+                type="text"
+                name="merchantId"
+                className="form-input"
+                value={depositParams.merchantId}
+                onChange={handleDepositChange}
+                placeholder="输入商家ID（bytes32）"
+                required
+              />
+            </div>
             <div className="form-group">
               <label className="form-label">代币地址</label>
               <input
@@ -493,6 +490,18 @@ export default function VaultOperations() {
           {/* 提现操作 */}
           <div className="card" style={{ margin: '20px 0', backgroundColor: '#fff7e6' }}>
             <h3>提现操作</h3>
+            <div className="form-group">
+              <label className="form-label">商家ID</label>
+              <input
+                type="text"
+                name="merchantId"
+                className="form-input"
+                value={withdrawParams.merchantId}
+                onChange={handleWithdrawChange}
+                placeholder="输入商家ID（bytes32）"
+                required
+              />
+            </div>
             <div className="form-group">
               <label className="form-label">代币地址</label>
               <input
@@ -632,6 +641,30 @@ export default function VaultOperations() {
                 value={consumeParams.deadlineSeconds}
                 onChange={handleConsumeChange}
                 placeholder="输入过期时间（秒），默认3600秒"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">收款地址（recipient）</label>
+              <input
+                type="text"
+                name="recipient"
+                className="form-input"
+                value={consumeParams.recipient}
+                onChange={handleConsumeChange}
+                placeholder="输入收款地址"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">促销档位编号（idx）</label>
+              <input
+                type="number"
+                name="idx"
+                className="form-input"
+                value={consumeParams.idx}
+                onChange={handleConsumeChange}
+                placeholder="输入促销档位编号（如0、1、2）"
+                required
               />
             </div>
 

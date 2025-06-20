@@ -1,9 +1,8 @@
 export interface DelegateConfig {
-    contractAddress: string;
-    publicKey: string;
-    useMetaMask?: boolean;
-    consumeContractAddress?: string;
+    paymentContractAddress?: string;
+    vaultContractAddress?: string;
     forwarderAddress?: string;
+    rpcUrl?: string;
 }
 export interface TransferParams {
     to: string;
@@ -41,34 +40,6 @@ export interface PromoTier {
     discountRate: bigint;
     voucherAmount: bigint;
     pointAmount: bigint;
-}
-export interface MerchantContractConfig {
-    promoTiersEnabled: boolean;
-    promoTiers: PromoTier[];
-    discountEnabled: boolean;
-    discountBase: bigint;
-    discountRate: bigint;
-    cashbackPointEnabled: boolean;
-    cashbackPointBase: bigint;
-    cashbackPointAmount: bigint;
-    cashbackVoucherEnabled: boolean;
-    cashbackVoucherBase: bigint;
-    cashbackVoucherAmount: bigint;
-    voucherExpirePeriod: bigint;
-}
-export interface MerchantConfig {
-    id: string;
-    name: string;
-    owner: string;
-    operators: string[];
-    paymentAddress: string;
-    active: boolean;
-    feePpm?: number;
-    createdAt: number;
-    updatedAt: number;
-    maxAmount?: bigint;
-    minAmount?: bigint;
-    whitelistedTokens?: string[];
 }
 export declare enum OperationType {
     Payment = "payment",// 支付操作

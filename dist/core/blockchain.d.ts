@@ -1,12 +1,10 @@
 import { type Hash, type Address } from 'viem';
 import { WalletService } from './wallet-service';
 export interface BlockchainConfig {
-    useMetaMask?: boolean;
-    contractAddress?: string;
-    publicKey?: string;
-    consumeContractAddress?: string;
-    forwarderAddress?: string;
     rpcUrl?: string;
+    forwarderAddress?: string;
+    paymentContractAddress?: string;
+    vaultContractAddress?: string;
 }
 export declare class BlockchainService extends WalletService {
     private customRpcClient;
@@ -7457,9 +7455,9 @@ export declare class BlockchainService extends WalletService {
             [x: `uint48[${string}]`]: undefined;
             [x: `bytes1[${string}]`]: undefined;
             [x: `bytes[${string}]`]: undefined;
-            [x: `bytes3[${string}]`]: undefined;
             [x: `bytes2[${string}]`]: undefined;
             [x: `bytes4[${string}]`]: undefined;
+            [x: `bytes3[${string}]`]: undefined;
             [x: `bytes5[${string}]`]: undefined;
             [x: `bytes6[${string}]`]: undefined;
             [x: `bytes7[${string}]`]: undefined;
@@ -7559,9 +7557,9 @@ export declare class BlockchainService extends WalletService {
             uint48?: undefined;
             bytes1?: undefined;
             bytes?: undefined;
-            bytes3?: undefined;
             bytes2?: undefined;
             bytes4?: undefined;
+            bytes3?: undefined;
             bytes5?: undefined;
             bytes6?: undefined;
             bytes7?: undefined;
@@ -7675,7 +7673,7 @@ export declare class BlockchainService extends WalletService {
         } & import("viem").ExactPartial<Pick<import("viem").PublicActions<import("viem").Transport, import("viem").Chain | undefined, import("viem").Account | undefined>, "getChainId" | "prepareTransactionRequest" | "sendRawTransaction" | "call" | "createContractEventFilter" | "createEventFilter" | "estimateContractGas" | "estimateGas" | "getBlock" | "getBlockNumber" | "getContractEvents" | "getEnsText" | "getFilterChanges" | "getGasPrice" | "getLogs" | "getTransaction" | "getTransactionCount" | "getTransactionReceipt" | "readContract" | "simulateContract" | "uninstallFilter" | "watchBlockNumber" | "watchContractEvent"> & Pick<import("viem").WalletActions<import("viem").Chain | undefined, import("viem").Account | undefined>, "sendTransaction" | "writeContract">>>(fn: (client: import("viem").Client<import("viem").Transport, import("viem").Chain | undefined, import("viem").Account | undefined, import("viem").WalletRpcSchema, import("viem").WalletActions<import("viem").Chain | undefined, import("viem").Account | undefined>>) => client) => import("viem").Client<import("viem").Transport, import("viem").Chain | undefined, import("viem").Account | undefined, import("viem").WalletRpcSchema, { [K in keyof client]: client[K]; } & import("viem").WalletActions<import("viem").Chain | undefined, import("viem").Account | undefined>>;
     } | undefined;
     getAccount(): import("viem").Account | undefined;
-    ensureWalletConnected(): Promise<void>;
+    ensureWalletConnected(timeoutMs?: number): Promise<void>;
     ensureTokenAllowance(tokenAddress: string, spender: string, amount: bigint): Promise<boolean>;
     getNonce(address: string, options?: {
         timeout?: number;
@@ -7685,4 +7683,16 @@ export declare class BlockchainService extends WalletService {
     readContract<T = any>(address: string, abi: any, functionName: string, args?: any[], options?: {
         timeout?: number;
     }): Promise<T>;
+    getPaymentContractAddress(): string;
+    getVaultContractAddress(): string;
+    getForwarderAddress(): string;
+    /**
+     * 获取或创建自定义 RPC 客户端
+     * @returns 自定义 RPC 客户端
+     */
+    private getCustomRpcClient;
+    /**
+     * 获取可用于 estimateContractGas 的客户端
+     */
+    getEstimateClient(): any;
 }

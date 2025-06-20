@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Layout from '../components/Layout';
+import { useWeb3 } from '../context/Web3Context';
 
 export default function DirectPayment() {
-  const [address, setAddress] = useState<string>('');
+  const { sdk, address } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [services, setServices] = useState<any>(null);
   
   const [formParams, setFormParams] = useState({
-    tokenAddress: '0x540126734dee9B0e623c71c2a9ED44Ef4387A81F',
+    tokenAddress: '0xc6AdC53079AC67aD9A03Cbd0978CB9aF63AdFda1',
     to: '0xa8666442fA7583F783a169CC9F5449ec660295E8',
     amount: '50000000000000000000', // 50 tokens
     spender: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA', // 合约地址作为spender
@@ -65,7 +66,6 @@ export default function DirectPayment() {
     setError('');
     try {
       const addr = await services.walletService.connectWallet();
-      setAddress(addr);
     } catch (e: any) {
       console.error(e);
       setError(`连接失败: ${e.message}`);
@@ -82,9 +82,20 @@ export default function DirectPayment() {
     }));
   };
 
+  const isValidAddress = (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr);
+
   const handleApprove = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
+    console.log('[直接支付] approveToken 参数:', formParams, 'address:', address);
+    if (!sdk || !address) {
+      alert('请先连接钱包');
+      return;
+    }
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.spender)) {
+      alert('spender地址不能为空且必须为42位0x开头的地址');
       return;
     }
 
@@ -108,8 +119,21 @@ export default function DirectPayment() {
   };
 
   const handlePay = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
+    console.log('[直接支付] userPayDirect 参数:', formParams, 'address:', address);
+    if (!sdk || !address) {
+      alert('请先连接钱包');
+      return;
+    }
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.to)) {
+      alert('接收方地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.spender)) {
+      alert('spender地址不能为空且必须为42位0x开头的地址');
       return;
     }
 
@@ -134,8 +158,17 @@ export default function DirectPayment() {
   };
 
   const checkAllowance = async () => {
-    if (!services?.txService || !address) {
-      setError('请先连接钱包');
+    console.log('[直接支付] checkAllowance 参数:', formParams, 'address:', address);
+    if (!sdk || !address) {
+      alert('请先连接钱包');
+      return;
+    }
+    if (!isValidAddress(formParams.tokenAddress)) {
+      alert('代币地址不能为空且必须为42位0x开头的地址');
+      return;
+    }
+    if (!isValidAddress(formParams.spender)) {
+      alert('spender地址不能为空且必须为42位0x开头的地址');
       return;
     }
 
