@@ -28,8 +28,8 @@ export declare class RelayedPayment {
      * @param amount 支付金额
      * @param seq 序列号，默认为当前时间戳
      * @param tokenAddress 代币地址，如不提供则为原生代币
-     * @param deadlineSeconds 过期时间（秒），默认3600秒
+     * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
      * @returns 包含签名的中继请求数据
      */
-    preparePayment(to: string, amount: bigint, seq: bigint, tokenAddress?: string, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    preparePayment(to: string, amount: bigint, seq: bigint, tokenAddress: string, deadline: bigint): Promise<RelayedRequestData>;
 }

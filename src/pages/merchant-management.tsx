@@ -9,23 +9,6 @@ interface MerchantParams {
   operatorAddress: string;
 }
 
-// 工具函数：统一 merchantId 格式
-function normalizeMerchantId(input: string, sdk: any) {
-  if (input.startsWith('0x') && input.length === 66) {
-    return input;
-  }
-  if (sdk?.merchantConfigManager?.stringToBytes32) {
-    return sdk.merchantConfigManager.stringToBytes32(input);
-  }
-  let hex = '';
-  try {
-    hex = Buffer.from(input, 'utf8').toString('hex');
-  } catch {
-    hex = Array.from(input).map((c: string) => c.charCodeAt(0).toString(16)).join('');
-  }
-  return '0x' + hex.padEnd(64, '0');
-}
-
 export default function MerchantManagement() {
   const { sdk, address } = useWeb3();
   const [result, setResult] = useState<any>(null);
@@ -57,28 +40,6 @@ export default function MerchantManagement() {
     }));
   };
 
-  const generateMerchantId = () => {
-    if (!sdk || !sdk.merchantConfigManager) {
-      setError('SDK未初始化或商户管理模块不可用');
-      return;
-    }
-    if (!merchantParams.merchantName) {
-      setError('请先输入商家名称');
-      return;
-    }
-    try {
-      const id = sdk.merchantConfigManager.generateMerchantId(merchantParams.merchantName);
-      setMerchantParams(prev => ({
-        ...prev,
-        merchantId: id
-      }));
-      setResult({ type: 'generate_id', id });
-    } catch (e: any) {
-      console.error(e);
-      setError(`生成ID失败: ${e.message}`);
-    }
-  };
-
   const handleAddOperator = async () => {
     if (!address) {
       setError('请先连接钱包');
@@ -91,9 +52,8 @@ export default function MerchantManagement() {
     setLoading(true);
     setError('');
     try {
-      const normalizedId = normalizeMerchantId(merchantParams.merchantId, sdk);
       const result = await merchantManager.setMerchantOperator(
-        normalizedId,
+        merchantParams.merchantId,
         merchantParams.operatorAddress
       );
       setResult({ type: 'add_operator', result });
@@ -118,9 +78,8 @@ export default function MerchantManagement() {
     setLoading(true);
     setError('');
     try {
-      const normalizedId = normalizeMerchantId(merchantParams.merchantId, sdk);
       const result = await merchantManager.setMerchantOperator(
-        normalizedId,
+        merchantParams.merchantId,
         merchantParams.operatorAddress
       );
       setResult(result);
@@ -144,9 +103,8 @@ export default function MerchantManagement() {
     setLoading(true);
     setError('');
     try {
-      const normalizedId = normalizeMerchantId(merchantParams.merchantId, sdk);
       const result = await merchantManager.checkMerchantOperator(
-        normalizedId,
+        merchantParams.merchantId,
         merchantParams.operatorAddress
       );
       setResult({ type: 'check_permission', result });
@@ -187,40 +145,6 @@ export default function MerchantManagement() {
             <p style={{ margin: '0', color: '#f5222d' }}>{error}</p>
           </div>
         )}
-
-        {/* 商家ID生成 */}
-        <div className="card" style={{ margin: '20px 0', backgroundColor: '#f0f9ff' }}>
-          <h3>商家ID生成</h3>
-          <div className="form-group">
-            <label className="form-label">商家名称</label>
-            <input
-              type="text"
-              name="merchantName"
-              className="form-input"
-              value={merchantParams.merchantName}
-              onChange={handleInputChange}
-              placeholder="输入商家名称"
-            />
-          </div>
-          <button 
-            className="btn btn-primary"
-            onClick={generateMerchantId}
-            style={{ width: '100%' }}
-          >
-            生成商家ID
-          </button>
-          {merchantParams.merchantId && (
-            <div style={{ 
-              marginTop: '10px', 
-              padding: '10px', 
-              backgroundColor: '#f6ffed', 
-              border: '1px solid #b7eb8f',
-              borderRadius: '4px'
-            }}>
-              <p style={{ margin: '0' }}>生成的商家ID: {merchantParams.merchantId}</p>
-            </div>
-          )}
-        </div>
 
         {/* 操作员管理 */}
         <div className="card" style={{ margin: '20px 0', backgroundColor: '#fff7e6' }}>
@@ -290,7 +214,6 @@ export default function MerchantManagement() {
         <h3>使用说明:</h3>
         <ol style={{ paddingLeft: '20px' }}>
           <li>点击"连接钱包"按钮连接MetaMask</li>
-          <li>使用"商家ID生成"功能创建新的商家ID</li>
           <li>使用"操作员管理"功能添加或检查操作员权限</li>
         </ol>
       </div>

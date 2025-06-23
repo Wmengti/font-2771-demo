@@ -109,23 +109,6 @@ interface PromoTier {
   enabled: boolean;
 }
 
-// 工具函数：统一 merchantId 格式
-function normalizeMerchantId(input: string, sdk: any) {
-  if (input.startsWith('0x') && input.length === 66) {
-    return input;
-  }
-  if (sdk?.merchantConfigManager?.stringToBytes32) {
-    return sdk.merchantConfigManager.stringToBytes32(input);
-  }
-  let hex = '';
-  try {
-    hex = Buffer.from(input, 'utf8').toString('hex');
-  } catch {
-    hex = Array.from(input).map((c: string) => c.charCodeAt(0).toString(16)).join('');
-  }
-  return '0x' + hex.padEnd(64, '0');
-}
-
 export default function MerchantConfig() {
   const { sdk, address } = useWeb3();
   const [result, setResult] = useState<any>(null);
@@ -185,7 +168,7 @@ export default function MerchantConfig() {
     try {
       const idx = editingIdx === null ? promoTiers.length : editingIdx;
       await sdk.merchantConfigManager.setPromoTier(
-        normalizeMerchantId(configParams.merchantId, sdk),
+        configParams.merchantId,
         idx,
         BigInt(editingTier.minAmount || '0'),
         BigInt(editingTier.discountRate || '0'),
@@ -230,7 +213,7 @@ export default function MerchantConfig() {
       // 这里链上可用 setPromoTier(..., enabled=false) 禁用该档位
       const t = promoTiers[idx];
       await sdk.merchantConfigManager.setPromoTier(
-        normalizeMerchantId(configParams.merchantId, sdk),
+        configParams.merchantId,
         idx,
         BigInt(t.minAmount || '0'),
         BigInt(t.discountRate || '0'),
@@ -273,7 +256,7 @@ export default function MerchantConfig() {
       const tiers: PromoTier[] = [];
       for (let idx = 0; idx < 20; idx++) { // 最多查20档
         try {
-          const res = await sdk.vault.getPromoTier(normalizeMerchantId(configParams.merchantId, sdk), idx);
+          const res = await sdk.vault.getPromoTier(configParams.merchantId, idx);
           if (!res || !res.minAmount) break;
           tiers.push({
             minAmount: res.minAmount?.toString() || '',

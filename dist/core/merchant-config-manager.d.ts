@@ -41,22 +41,4 @@ export declare class MerchantConfigManager extends BlockchainService {
      * @returns 权限状态
      */
     checkMerchantOperator(merchantId: string, operator: string): Promise<MerchantOperationResult>;
-    /**
-     * 发放代金券给用户
-     * @param merchantId 商户ID
-     * @param userAddress 用户地址
-     * @param tokenAddress 代币地址
-     * @param amount 代金券金额
-     * @param expirePeriod 过期时间（秒）
-     * @returns 操作结果
-     */
-    issueVoucher(merchantId: string, userAddress: string, tokenAddress: string, amount: bigint, expirePeriod: bigint): Promise<MerchantOperationResult>;
-    /**
-     * 发放积分给用户
-     * @param merchantId 商户ID
-     * @param userAddress 用户地址
-     * @param points 积分数量
-     * @returns 操作结果
-     */
-    issuePoints(merchantId: string, userAddress: string, points: bigint): Promise<MerchantOperationResult>;
 }

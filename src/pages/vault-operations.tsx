@@ -39,23 +39,6 @@ interface ConsumeParams {
   idx: string;
 }
 
-// 工具函数：统一 merchantId 格式
-function normalizeMerchantId(input: string, sdk: any) {
-  if (input.startsWith('0x') && input.length === 66) {
-    return input;
-  }
-  if (sdk?.merchantConfigManager?.stringToBytes32) {
-    return sdk.merchantConfigManager.stringToBytes32(input);
-  }
-  let hex = '';
-  try {
-    hex = Buffer.from(input, 'utf8').toString('hex');
-  } catch {
-    hex = Array.from(input).map((c: string) => c.charCodeAt(0).toString(16)).join('');
-  }
-  return '0x' + hex.padEnd(64, '0');
-}
-
 export default function VaultOperations() {
   const { sdk, address } = useWeb3();
   const [result, setResult] = useState<any>(null);
@@ -156,9 +139,8 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const merchantId = normalizeMerchantId(depositParams.merchantId, sdk);
       const txHash = await sdk.depositToVault(
-        merchantId,
+        depositParams.merchantId,
         depositParams.tokenAddress,
         BigInt(depositParams.amount)
       );
@@ -182,9 +164,8 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const merchantId = normalizeMerchantId(withdrawParams.merchantId, sdk);
       const txHash = await sdk.withdrawFromVault(
-        merchantId,
+        withdrawParams.merchantId,
         withdrawParams.tokenAddress,
         BigInt(withdrawParams.amount)
       );
@@ -211,9 +192,8 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const merchantId = normalizeMerchantId(consumeParams.merchantId, sdk);
       const txHash = await sdk.consumeFromVault(
-        merchantId,
+        consumeParams.merchantId,
         consumeParams.tokenAddress,
         BigInt(consumeParams.amount),
         consumeParams.voucherId ? BigInt(consumeParams.voucherId) : 0n,
@@ -271,9 +251,8 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const merchantId = normalizeMerchantId(depositParams.merchantId, sdk);
       const relayedData = await sdk.prepareRelayedDeposit(
-        merchantId,
+        depositParams.merchantId,
         depositParams.tokenAddress,
         BigInt(depositParams.amount),
         BigInt(3600)
@@ -298,9 +277,8 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const merchantId = normalizeMerchantId(withdrawParams.merchantId, sdk);
       const relayedData = await sdk.prepareRelayedWithdraw(
-        merchantId,
+        withdrawParams.merchantId,
         withdrawParams.tokenAddress,
         BigInt(withdrawParams.amount),
         BigInt(withdrawParams.deadlineSeconds)
@@ -326,7 +304,7 @@ export default function VaultOperations() {
     setError('');
     try {
       // 参数校验与日志
-      const merchantId = normalizeMerchantId(consumeParams.merchantId, sdk);
+      const merchantId = consumeParams.merchantId;
       const tokenAddress = consumeParams.tokenAddress;
       const amount = BigInt(consumeParams.amount);
       const voucherId = consumeParams.voucherId ? BigInt(consumeParams.voucherId) : 0n;
@@ -378,10 +356,9 @@ export default function VaultOperations() {
     setLoading(true);
     setError('');
     try {
-      const merchantId = normalizeMerchantId(depositParams.merchantId, sdk);
       const balance = await sdk.vault.getUserBalance(
         address,
-        merchantId,
+        depositParams.merchantId,
         depositParams.tokenAddress
       );
       setResult({ type: 'balance', value: balance.toString() });

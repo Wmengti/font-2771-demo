@@ -59,7 +59,7 @@ export declare class VaultOperations {
      * @param userAddress 用户地址（可选，默认当前钱包地址）
      * @returns 交易哈希
      */
-    consumeDirect(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, userAddress?: string): Promise<Hash>;
+    consumeDirect(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, userAddress: string): Promise<Hash>;
     /**
      * 校验代金券
      */
@@ -83,29 +83,29 @@ export declare class VaultOperations {
      * @param seq 消费序列号（建议用当前时间戳，保证唯一性）
      * @param idx 促销档位编号
      * @param recipient 商户收款地址
-     * @param deadlineSeconds 请求过期时间（单位：秒，bigint）
+     * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
      * @param userAddress 用户地址（可选，默认当前钱包地址）
      * @returns 包含签名的中继请求数据
      */
-    prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, deadlineSeconds: bigint, userAddress?: string): Promise<RelayedRequestData>;
+    prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, deadline: bigint, userAddress: string): Promise<RelayedRequestData>;
     /**
      * 准备代付gas的存款请求（仅签名，不发送）
      * @param merchantId 商户ID
      * @param tokenAddress 代币地址
      * @param amount 存款金额
-     * @param deadlineSeconds 过期时间（秒），默认3600秒
+     * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
      * @returns 包含签名的中继请求数据
      */
-    prepareRelayedDeposit(merchantId: string, tokenAddress: string, amount: bigint, deadlineSeconds: bigint): Promise<RelayedRequestData>;
+    prepareRelayedDeposit(merchantId: string, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
     /**
      * 准备代付gas的提款请求（仅签名，不发送）
      * @param merchantId 商户ID
      * @param tokenAddress 代币地址
      * @param amount 提款金额
-     * @param deadlineSeconds 过期时间（秒），默认3600秒
+     * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
      * @returns 包含签名的中继请求数据
      */
-    prepareRelayedWithdraw(merchantId: string, tokenAddress: string, amount: bigint, deadlineSeconds: bigint): Promise<RelayedRequestData>;
+    prepareRelayedWithdraw(merchantId: string, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
     /**
      * 获取指定用户在指定商户的余额
      * @param userAddress 用户地址

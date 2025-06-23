@@ -78,10 +78,10 @@ export declare class Web3Delegate {
      * @param amount 支付金额
      * @param seq 序列号，默认为当前时间戳
      * @param tokenAddress 代币地址，如不提供则为原生代币
-     * @param deadlineSeconds 过期时间（秒），默认3600秒
+     * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
      * @returns 包含签名的请求数据
      */
-    prepareRelayedPayment(to: string, amount: bigint, seq: bigint, tokenAddress?: string, deadlineSeconds?: number): Promise<RelayedRequestData>;
+    prepareRelayedPayment(to: string, amount: bigint, seq: bigint, tokenAddress: string, deadline: bigint): Promise<RelayedRequestData>;
     /**
      * 向金库存款（用户付gas）
      * @param merchantId 商户ID
@@ -115,9 +115,10 @@ export declare class Web3Delegate {
      * @param idx 由前端传入
      * @param seq 序列号
      * @param recipient 接收方地址
+     * @param userAddress 用户地址
      * @returns 交易哈希
      */
-    consumeFromVault(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, idx: bigint, seq?: bigint, recipient?: string): Promise<Hash>;
+    consumeFromVault(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, idx: bigint, seq: bigint, recipient: string, userAddress: string): Promise<Hash>;
     /**
      * 准备代付gas的金库消费请求（仅签名，不发送）
      * @param merchantId 商家ID
@@ -128,28 +129,29 @@ export declare class Web3Delegate {
      * @param idx 由前端传入
      * @param seq 序列号
      * @param recipient 接收方地址
-     * @param deadlineSeconds 过期时间（秒）
+     * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
+     * @param userAddress 用户地址
      * @returns 包含签名的请求数据
      */
-    prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, idx: bigint, seq?: bigint, recipient?: string, deadlineSeconds?: bigint): Promise<RelayedRequestData>;
+    prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, idx: bigint, seq: bigint, recipient: string, deadline: bigint, userAddress: string): Promise<RelayedRequestData>;
     /**
      * 准备代付gas的金库存款请求（仅签名，不发送）
      * @param merchantId 商户ID
      * @param tokenAddress 代币地址
      * @param amount 存款金额
-     * @param deadlineSeconds 过期时间（秒）
+     * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
      * @returns 包含签名的请求数据
      */
-    prepareRelayedDeposit(merchantId: string, tokenAddress: string, amount: bigint, deadlineSeconds?: bigint): Promise<RelayedRequestData>;
+    prepareRelayedDeposit(merchantId: string, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
     /**
      * 准备代付gas的金库提现请求（仅签名，不发送）
      * @param merchantId 商户ID
      * @param tokenAddress 代币地址
      * @param amount 提现金额
-     * @param deadlineSeconds 过期时间（秒）
+     * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
      * @returns 包含签名的请求数据
      */
-    prepareRelayedWithdraw(merchantId: string, tokenAddress: string, amount: bigint, deadlineSeconds?: bigint): Promise<RelayedRequestData>;
+    prepareRelayedWithdraw(merchantId: string, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
 }
 export type { RelayedRequestData } from './operations/relayed-payment';
 export type { ForwardRequestData } from './signing';
