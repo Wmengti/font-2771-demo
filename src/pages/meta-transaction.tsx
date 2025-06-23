@@ -26,7 +26,7 @@ export default function MetaTransaction() {
     amount: '50000000000000000000', // 50 tokens
     spender: '0xA03337a0CFa75f2ED53b2b5cb5E5cF22819De6dA', // 合约地址作为spender
     seq: '',
-    deadlineSeconds: '3600' // 1小时过期时间
+    deadlineSeconds: '1850297516' // 1小时过期时间
   });
 
   // 初始化
@@ -312,7 +312,7 @@ export default function MetaTransaction() {
               className="form-input"
               value={formParams.deadlineSeconds}
               onChange={handleInputChange}
-              placeholder="输入过期时间（秒），默认3600秒"
+              placeholder="输入过期时间（秒），默认1850297516秒"
               required
             />
           </div>

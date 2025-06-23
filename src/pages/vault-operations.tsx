@@ -56,7 +56,7 @@ export default function VaultOperations() {
     merchantId: '0x00000000000000000000000000000000000000000000000000000063686c6f65',
     tokenAddress: '0xc6AdC53079AC67aD9A03Cbd0978CB9aF63AdFda1',
     amount: '1000000000000000000',
-    deadlineSeconds: '3600'
+    deadlineSeconds: '1850297516'
   });
 
   const [consumeParams, setConsumeParams] = useState<ConsumeParams>({
@@ -66,7 +66,7 @@ export default function VaultOperations() {
     voucherId: '0',
     pointToUse: '0',
     seq: String(Math.floor(Date.now() / 1000)),
-    deadlineSeconds: '3600',
+    deadlineSeconds: '1850297516',
     recipient: '',
     idx: '0'
   });
@@ -189,6 +189,14 @@ export default function VaultOperations() {
       setError('请输入收款地址');
       return;
     }
+    if (!consumeParams.seq) {
+      setError('请输入序列号');
+      return;
+    }
+    if (!address) {
+      setError('请先连接钱包');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -200,9 +208,9 @@ export default function VaultOperations() {
         consumeParams.pointToUse ? BigInt(consumeParams.pointToUse) : 0n,
         BigInt(consumeParams.idx),
         BigInt(consumeParams.seq),
-        consumeParams.recipient
+        consumeParams.recipient,
+        address // userAddress 必填
       );
-      
       setResult({ type: 'consume_direct', txHash });
       alert(`消费成功！交易哈希: ${txHash}`);
     } catch (e: any) {
@@ -255,7 +263,7 @@ export default function VaultOperations() {
         depositParams.merchantId,
         depositParams.tokenAddress,
         BigInt(depositParams.amount),
-        BigInt(3600)
+        BigInt(1850297516)
       );
       setResult({ type: 'meta_deposit', data: relayedData });
       alert('Meta存款签名成功！');
@@ -299,7 +307,14 @@ export default function VaultOperations() {
       setError('请先连接钱包');
       return;
     }
-
+    if (!consumeParams.seq) {
+      setError('请输入序列号');
+      return;
+    }
+    if (!consumeParams.recipient) {
+      setError('请输入收款地址');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -310,9 +325,10 @@ export default function VaultOperations() {
       const voucherId = consumeParams.voucherId ? BigInt(consumeParams.voucherId) : 0n;
       const pointToUse = consumeParams.pointToUse ? BigInt(consumeParams.pointToUse) : 0n;
       const idx = consumeParams.idx ? BigInt(consumeParams.idx) : 0n;
-      const seq = consumeParams.seq ? BigInt(consumeParams.seq) : undefined;
+      const seq = BigInt(consumeParams.seq);
       const recipient = consumeParams.recipient;
-      const deadlineSeconds = consumeParams.deadlineSeconds ? BigInt(consumeParams.deadlineSeconds) : 3600n;
+      const deadlineSeconds = consumeParams.deadlineSeconds ? BigInt(consumeParams.deadlineSeconds) : 1850297516n;
+      const userAddress = address;
       
       console.log('准备Meta消费请求:');
       console.log('商户ID:', merchantId);
@@ -321,9 +337,10 @@ export default function VaultOperations() {
       console.log('代金券ID:', voucherId?.toString() || '无');
       console.log('使用积分:', pointToUse?.toString() || '无');
       console.log('促销档位编号idx:', idx.toString());
-      console.log('序列号:', seq?.toString() || '无');
+      console.log('序列号:', seq.toString());
       console.log('收款地址:', recipient);
       console.log('过期时间(秒):', deadlineSeconds.toString());
+      console.log('用户地址:', userAddress);
       
       const relayedData = await sdk.prepareRelayedConsume(
         merchantId,
@@ -334,9 +351,9 @@ export default function VaultOperations() {
         idx,
         seq,
         recipient,
-        deadlineSeconds
+        deadlineSeconds,
+        userAddress // 必填
       );
-      
       setResult({ type: 'meta_consume', data: relayedData });
       alert('Meta消费签名成功！');
     } catch (e: any) {
@@ -534,7 +551,7 @@ export default function VaultOperations() {
                 className="form-input"
                 value={withdrawParams.deadlineSeconds}
                 onChange={handleWithdrawChange}
-                placeholder="输入过期时间（秒），默认3600秒"
+                placeholder="输入过期时间（秒），默认1850297516秒"
               />
             </div>
             <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
@@ -640,7 +657,7 @@ export default function VaultOperations() {
                 className="form-input"
                 value={consumeParams.deadlineSeconds}
                 onChange={handleConsumeChange}
-                placeholder="输入过期时间（秒），默认3600秒"
+                placeholder="输入过期时间（秒），默认1850297516秒"
               />
             </div>
             <div className="form-group">

@@ -33,7 +33,7 @@ export default function Payment() {
     amount: '',
     spender: '',
     seq: String(Math.floor(Date.now() / 1000)),
-    deadlineSeconds: '3600'
+    deadlineSeconds: '1850297516'
   });
 
   // 从URL参数读取tab
