@@ -232,7 +232,7 @@ export default function Payment() {
         amount,
         seq,
         tokenAddress,
-        deadline
+        BigInt(deadline)
       );
       setResult({ 
         type: 'meta_transaction', 
