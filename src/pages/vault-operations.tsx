@@ -90,12 +90,12 @@ export default function VaultOperations() {
   // 处理表单输入变化
   const handleDepositChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setDepositParams(prev => ({ ...prev, [name]: BigInt(value) }));
+    setDepositParams(prev => ({ ...prev, [name]: value }));
   };
 
   const handleWithdrawChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setWithdrawParams(prev => ({ ...prev, [name]: BigInt(value) }));
+    setWithdrawParams(prev => ({ ...prev, [name]: value }));
   };
 
   const handleConsumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
