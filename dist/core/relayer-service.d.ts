@@ -34,7 +34,7 @@ export declare class RelayerService extends BlockchainService {
      */
     validateConsumeRequest(params: {
         token: string;
-        merchantId: string;
+        merchantId: bigint;
         amount: bigint;
         seq: bigint;
         from: string;

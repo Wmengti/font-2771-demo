@@ -27,13 +27,13 @@ export declare class TransactionService {
     seq?: bigint): `0x${string}`;
     userPayDirect(to: string, amount: bigint, tokenAddress?: string, seq?: bigint): Promise<Hash>;
     prepareRelayedPayment(to: string, amount: bigint, seq: bigint, tokenAddress: string, deadline: bigint): Promise<RelayedRequestData>;
-    depositToVault(merchantId: string, tokenAddress: string, amount: bigint): Promise<Hash>;
-    withdrawFromVault(merchantId: string, tokenAddress: string, amount: bigint): Promise<Hash>;
-    consumeFromVault(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, userAddress: string): Promise<Hash>;
-    getUserBalance(userAddress: string, merchantId: string, tokenAddress: string): Promise<bigint>;
-    getUserPoints(userAddress: string, merchantId: string): Promise<bigint>;
-    getSpecificUserPoints(userAddress: string, merchantId: string): Promise<bigint>;
-    prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, deadline: bigint, userAddress: string): Promise<RelayedRequestData>;
-    prepareRelayedDeposit(merchantId: string, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
-    prepareRelayedWithdraw(merchantId: string, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
+    depositToVault(merchantId: bigint, tokenAddress: string, amount: bigint): Promise<Hash>;
+    withdrawFromVault(merchantId: bigint, tokenAddress: string, amount: bigint): Promise<Hash>;
+    consumeFromVault(merchantId: bigint, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, idx: bigint, seq: bigint, recipient: string, userAddress: string): Promise<Hash>;
+    getUserBalance(userAddress: string, merchantId: bigint, tokenAddress: string): Promise<bigint>;
+    getUserPoints(userAddress: string, merchantId: bigint): Promise<bigint>;
+    getSpecificUserPoints(userAddress: string, merchantId: bigint): Promise<bigint>;
+    prepareRelayedConsume(merchantId: bigint, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, idx: bigint, seq: bigint, recipient: string, deadline: bigint, userAddress: string): Promise<RelayedRequestData>;
+    prepareRelayedDeposit(merchantId: bigint, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
+    prepareRelayedWithdraw(merchantId: bigint, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
 }

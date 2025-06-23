@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { useWeb3 } from '../context/Web3Context';
 
 interface ConfigParams {
-  merchantId: string;
+  merchantId: bigint;
   promoTiersEnabled?: boolean;
   discountEnabled?: boolean;
   discountBase?: string;
@@ -115,7 +115,7 @@ export default function MerchantConfig() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [configParams, setConfigParams] = useState<ConfigParams>({
-    merchantId: '',
+    merchantId: BigInt(''),
   });
 
   const [promoTiers, setPromoTiers] = useState<PromoTier[]>(() => {
@@ -149,7 +149,7 @@ export default function MerchantConfig() {
     const { name, value, type, checked } = e.target;
     setConfigParams(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : BigInt(value)
     }));
   };
 
@@ -159,7 +159,7 @@ export default function MerchantConfig() {
       setError('请先连接钱包');
       return;
     }
-    if (!configParams.merchantId) {
+    if (configParams.merchantId === BigInt(0)) {
       setError('请输入商家ID');
       return;
     }
@@ -203,7 +203,7 @@ export default function MerchantConfig() {
       setError('请先连接钱包');
       return;
     }
-    if (!configParams.merchantId) {
+    if (configParams.merchantId === BigInt(0)) {
       setError('请输入商家ID');
       return;
     }
@@ -246,7 +246,7 @@ export default function MerchantConfig() {
       setError('请先连接钱包');
       return;
     }
-    if (!configParams.merchantId) {
+    if (configParams.merchantId === BigInt(0)) {
       setError('请输入商家ID');
       return;
     }
@@ -322,7 +322,7 @@ export default function MerchantConfig() {
               type="text"
               name="merchantId"
               className="form-input"
-              value={configParams.merchantId}
+              value={configParams.merchantId.toString()}
               onChange={handleInputChange}
               placeholder="输入商家ID"
               required

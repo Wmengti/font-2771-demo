@@ -55,7 +55,7 @@ export interface RelayerRequest {
     seq: bigint;
     gasFee?: bigint;
     consumerId?: string;
-    merchantId?: string;
+    merchantId?: bigint;
     voucherId?: bigint;
     pointToUse?: bigint;
     signature: string;

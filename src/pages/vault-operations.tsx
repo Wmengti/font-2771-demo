@@ -15,20 +15,20 @@ interface RelayedRequestData {
 }
 
 interface DepositParams {
-  merchantId: string;
+  merchantId: bigint;
   tokenAddress: string;
   amount: string;
 }
 
 interface WithdrawParams {
-  merchantId: string;
+  merchantId: bigint;
   tokenAddress: string;
   amount: string;
   deadlineSeconds: string;
 }
 
 interface ConsumeParams {
-  merchantId: string;
+  merchantId: bigint;
   tokenAddress: string;
   amount: string;
   voucherId: string;
@@ -47,20 +47,20 @@ export default function VaultOperations() {
   const [services, setServices] = useState<any>(null);
   
   const [depositParams, setDepositParams] = useState<DepositParams>({
-    merchantId: '0x00000000000000000000000000000000000000000000000000000063686c6f65',
+    merchantId: BigInt('0x00000000000000000000000000000000000000000000000000000063686c6f65'),
     tokenAddress: '0xc6AdC53079AC67aD9A03Cbd0978CB9aF63AdFda1',
     amount: '1000000000000000000'
   });
 
   const [withdrawParams, setWithdrawParams] = useState<WithdrawParams>({
-    merchantId: '0x00000000000000000000000000000000000000000000000000000063686c6f65',
+    merchantId: BigInt('0x00000000000000000000000000000000000000000000000000000063686c6f65'),
     tokenAddress: '0xc6AdC53079AC67aD9A03Cbd0978CB9aF63AdFda1',
     amount: '1000000000000000000',
     deadlineSeconds: '1850297516'
   });
 
   const [consumeParams, setConsumeParams] = useState<ConsumeParams>({
-    merchantId: '0x00000000000000000000000000000000000000000000000000000063686c6f65',
+    merchantId: BigInt('0x00000000000000000000000000000000000000000000000000000063686c6f65'),
     tokenAddress: '0xc6AdC53079AC67aD9A03Cbd0978CB9aF63AdFda1',
     amount: '1000000000000000000',
     voucherId: '0',
@@ -90,12 +90,12 @@ export default function VaultOperations() {
   // 处理表单输入变化
   const handleDepositChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setDepositParams(prev => ({ ...prev, [name]: value }));
+    setDepositParams(prev => ({ ...prev, [name]: BigInt(value) }));
   };
 
   const handleWithdrawChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setWithdrawParams(prev => ({ ...prev, [name]: value }));
+    setWithdrawParams(prev => ({ ...prev, [name]: BigInt(value) }));
   };
 
   const handleConsumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -444,7 +444,7 @@ export default function VaultOperations() {
                 type="text"
                 name="merchantId"
                 className="form-input"
-                value={depositParams.merchantId}
+                value={depositParams.merchantId.toString()}
                 onChange={handleDepositChange}
                 placeholder="输入商家ID（bytes32）"
                 required
@@ -513,7 +513,7 @@ export default function VaultOperations() {
                 type="text"
                 name="merchantId"
                 className="form-input"
-                value={withdrawParams.merchantId}
+                value={withdrawParams.merchantId.toString()}
                 onChange={handleWithdrawChange}
                 placeholder="输入商家ID（bytes32）"
                 required
@@ -585,7 +585,7 @@ export default function VaultOperations() {
                 type="text"
                 name="merchantId"
                 className="form-input"
-                value={consumeParams.merchantId}
+                value={consumeParams.merchantId.toString()}
                 onChange={handleConsumeChange}
                 placeholder="输入商家地址"
                 required

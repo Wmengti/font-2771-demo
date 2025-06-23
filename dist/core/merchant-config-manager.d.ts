@@ -16,11 +16,11 @@ export declare class MerchantConfigManager extends BlockchainService {
      * @param enabled 档位开关
      * @returns 交易哈希
      */
-    setPromoTier(merchantId: string, idx: number, minAmount: bigint, discountRate: bigint, voucherAmount: bigint, pointAmount: bigint, startTime: bigint, endTime: bigint, voucherExpirePeriod: bigint, enabled: boolean): Promise<string>;
+    setPromoTier(merchantId: bigint, idx: number, minAmount: bigint, discountRate: bigint, voucherAmount: bigint, pointAmount: bigint, startTime: bigint, endTime: bigint, voucherExpirePeriod: bigint, enabled: boolean): Promise<string>;
     /**
-     * 工具：将字符串转为 bytes32
+     * int64 转 bytes32（高位补零，右对齐）
      */
-    private stringToBytes32;
+    private int64ToBytes32;
     /**
      * 生成商户ID
      * @param merchantName 商户名称或标识符
@@ -33,12 +33,12 @@ export declare class MerchantConfigManager extends BlockchainService {
      * @param operator 操作员地址
      * @returns 操作结果
      */
-    setMerchantOperator(merchantId: string, operator: string): Promise<MerchantOperationResult>;
+    setMerchantOperator(merchantId: bigint, operator: string): Promise<MerchantOperationResult>;
     /**
      * 检查商户操作员权限
      * @param merchantId 商户ID
      * @param operator 操作员地址
      * @returns 权限状态
      */
-    checkMerchantOperator(merchantId: string, operator: string): Promise<MerchantOperationResult>;
+    checkMerchantOperator(merchantId: bigint, operator: string): Promise<MerchantOperationResult>;
 }

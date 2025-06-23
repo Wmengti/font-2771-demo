@@ -5,7 +5,7 @@ import { MerchantConfigManager } from '../../dist';
 
 interface MerchantParams {
   merchantName: string;
-  merchantId: string;
+  merchantId: bigint;
   operatorAddress: string;
 }
 
@@ -16,7 +16,7 @@ export default function MerchantManagement() {
   const [error, setError] = useState<string>('');
   const [merchantParams, setMerchantParams] = useState<MerchantParams>({
     merchantName: '',
-    merchantId: '',
+    merchantId: BigInt(''),
     operatorAddress: ''
   });
   const [mounted, setMounted] = useState(false);
@@ -36,7 +36,7 @@ export default function MerchantManagement() {
     const { name, value } = e.target;
     setMerchantParams(prev => ({
       ...prev,
-      [name]: value
+      [name]: BigInt(value)
     }));
   };
 
@@ -155,7 +155,7 @@ export default function MerchantManagement() {
               type="text"
               name="merchantId"
               className="form-input"
-              value={merchantParams.merchantId}
+              value={merchantParams.merchantId.toString()}
               onChange={handleInputChange}
               placeholder="输入商家ID"
             />

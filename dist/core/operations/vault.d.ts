@@ -11,9 +11,9 @@ export declare class VaultOperations {
     private signingService;
     constructor(blockchainService: BlockchainService);
     /**
-     * 将字符串转换为 bytes32 格式
+     * int64 转 bytes32（高位补零，右对齐）
      */
-    private stringToBytes32;
+    private int64ToBytes32;
     /**
      * 链下校验：检查代币是否在白名单
      */
@@ -37,7 +37,7 @@ export declare class VaultOperations {
      * @param amount 存款金额
      * @returns 交易哈希
      */
-    deposit(merchantId: string, tokenAddress: string, amount: bigint): Promise<Hash>;
+    deposit(merchantId: bigint, tokenAddress: string, amount: bigint): Promise<Hash>;
     /**
      * 从金库提现（用户付gas）
      * @param merchantId 商户ID
@@ -45,7 +45,7 @@ export declare class VaultOperations {
      * @param amount 提现金额
      * @returns 交易哈希
      */
-    withdraw(merchantId: string, tokenAddress: string, amount: bigint): Promise<Hash>;
+    withdraw(merchantId: bigint, tokenAddress: string, amount: bigint): Promise<Hash>;
     /**
      * 用户直接从金库消费（自己付gas）
      * @param merchantId 商户ID
@@ -59,7 +59,7 @@ export declare class VaultOperations {
      * @param userAddress 用户地址（可选，默认当前钱包地址）
      * @returns 交易哈希
      */
-    consumeDirect(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, userAddress: string): Promise<Hash>;
+    consumeDirect(merchantId: bigint, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, userAddress: string): Promise<Hash>;
     /**
      * 校验代金券
      */
@@ -72,7 +72,7 @@ export declare class VaultOperations {
      * @param amount 转移金额
      * @returns 交易哈希
      */
-    transferMerchantBalance(fromMerchantId: string, toMerchantId: string, tokenAddress: string, amount: bigint): Promise<Hash>;
+    transferMerchantBalance(fromMerchantId: bigint, toMerchantId: bigint, tokenAddress: string, amount: bigint): Promise<Hash>;
     /**
      * 准备代付gas的消费请求（仅签名，不发送）
      * @param merchantId 商户ID
@@ -87,7 +87,7 @@ export declare class VaultOperations {
      * @param userAddress 用户地址（可选，默认当前钱包地址）
      * @returns 包含签名的中继请求数据
      */
-    prepareRelayedConsume(merchantId: string, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, deadline: bigint, userAddress: string): Promise<RelayedRequestData>;
+    prepareRelayedConsume(merchantId: bigint, tokenAddress: string, amount: bigint, voucherId: bigint | undefined, pointToUse: bigint | undefined, seq: bigint | undefined, idx: bigint, recipient: string, deadline: bigint, userAddress: string): Promise<RelayedRequestData>;
     /**
      * 准备代付gas的存款请求（仅签名，不发送）
      * @param merchantId 商户ID
@@ -96,7 +96,7 @@ export declare class VaultOperations {
      * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
      * @returns 包含签名的中继请求数据
      */
-    prepareRelayedDeposit(merchantId: string, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
+    prepareRelayedDeposit(merchantId: bigint, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
     /**
      * 准备代付gas的提款请求（仅签名，不发送）
      * @param merchantId 商户ID
@@ -105,7 +105,7 @@ export declare class VaultOperations {
      * @param deadline 过期时间戳（秒，bigint，必须是未来的绝对时间戳）
      * @returns 包含签名的中继请求数据
      */
-    prepareRelayedWithdraw(merchantId: string, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
+    prepareRelayedWithdraw(merchantId: bigint, tokenAddress: string, amount: bigint, deadline: bigint): Promise<RelayedRequestData>;
     /**
      * 获取指定用户在指定商户的余额
      * @param userAddress 用户地址
@@ -113,21 +113,21 @@ export declare class VaultOperations {
      * @param tokenAddress 代币地址
      * @returns 余额
      */
-    getUserBalance(userAddress: string, merchantId: string, tokenAddress: string): Promise<bigint>;
+    getUserBalance(userAddress: string, merchantId: bigint, tokenAddress: string): Promise<bigint>;
     /**
      * 获取指定用户在指定商户的积分
      * @param userAddress 用户地址
      * @param merchantId 商户ID
      * @returns 积分数量
      */
-    getUserPoints(userAddress: string, merchantId: string): Promise<bigint>;
+    getUserPoints(userAddress: string, merchantId: bigint): Promise<bigint>;
     /**
      * 获取当前用户的所有代金券
      * @returns 代金券信息
      */
     getMyVouchers(): Promise<{
         ids: bigint[];
-        merchantIds: string[];
+        merchantIds: bigint[];
         tokens: string[];
         amounts: bigint[];
         used: boolean[];
@@ -139,7 +139,7 @@ export declare class VaultOperations {
      * @returns 代金券详情
      */
     getVoucher(voucherId: bigint): Promise<{
-        merchantId: string;
+        merchantId: bigint;
         token: string;
         amount: bigint;
         used: boolean;
@@ -177,14 +177,14 @@ export declare class VaultOperations {
      * @param idx 活动档位编号
      * @returns PromoTier 详情
      */
-    getPromoTier(merchantId: string, idx: number): Promise<any>;
+    getPromoTier(merchantId: bigint, idx: number): Promise<any>;
     /**
      * 消费主流程（consume）前端参数校验
      * @param params 消费参数
      * @throws 校验不通过抛出异常
      */
     validateConsumeParams(params: {
-        merchantId: string;
+        merchantId: bigint;
         token: string;
         amount: bigint;
         voucherId: bigint;
