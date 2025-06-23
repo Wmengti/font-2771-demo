@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import { useWeb3 } from '../context/Web3Context';
 
 interface ConfigParams {
-  merchantId: bigint;
+  merchantId: string;
   promoTiersEnabled?: boolean;
   discountEnabled?: boolean;
   discountBase?: string;
@@ -115,7 +115,7 @@ export default function MerchantConfig() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [configParams, setConfigParams] = useState<ConfigParams>({
-    merchantId: BigInt(''),
+    merchantId: '',
   });
 
   const [promoTiers, setPromoTiers] = useState<PromoTier[]>(() => {
@@ -149,7 +149,7 @@ export default function MerchantConfig() {
     const { name, value, type, checked } = e.target;
     setConfigParams(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : BigInt(value)
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -159,7 +159,14 @@ export default function MerchantConfig() {
       setError('请先连接钱包');
       return;
     }
-    if (configParams.merchantId === BigInt(0)) {
+    let merchantIdBigint: bigint;
+    try {
+      merchantIdBigint = BigInt(configParams.merchantId);
+    } catch {
+      setError('商家ID必须为合法的数字或16进制字符串');
+      return;
+    }
+    if (merchantIdBigint === BigInt(0)) {
       setError('请输入商家ID');
       return;
     }
@@ -168,7 +175,7 @@ export default function MerchantConfig() {
     try {
       const idx = editingIdx === null ? promoTiers.length : editingIdx;
       await sdk.merchantConfigManager.setPromoTier(
-        configParams.merchantId,
+        merchantIdBigint,
         idx,
         BigInt(editingTier.minAmount || '0'),
         BigInt(editingTier.discountRate || '0'),
@@ -203,7 +210,14 @@ export default function MerchantConfig() {
       setError('请先连接钱包');
       return;
     }
-    if (configParams.merchantId === BigInt(0)) {
+    let merchantIdBigint: bigint;
+    try {
+      merchantIdBigint = BigInt(configParams.merchantId);
+    } catch {
+      setError('商家ID必须为合法的数字或16进制字符串');
+      return;
+    }
+    if (merchantIdBigint === BigInt(0)) {
       setError('请输入商家ID');
       return;
     }
@@ -213,7 +227,7 @@ export default function MerchantConfig() {
       // 这里链上可用 setPromoTier(..., enabled=false) 禁用该档位
       const t = promoTiers[idx];
       await sdk.merchantConfigManager.setPromoTier(
-        configParams.merchantId,
+        merchantIdBigint,
         idx,
         BigInt(t.minAmount || '0'),
         BigInt(t.discountRate || '0'),
@@ -246,7 +260,14 @@ export default function MerchantConfig() {
       setError('请先连接钱包');
       return;
     }
-    if (configParams.merchantId === BigInt(0)) {
+    let merchantIdBigint: bigint;
+    try {
+      merchantIdBigint = BigInt(configParams.merchantId);
+    } catch {
+      setError('商家ID必须为合法的数字或16进制字符串');
+      return;
+    }
+    if (merchantIdBigint === BigInt(0)) {
       setError('请输入商家ID');
       return;
     }
@@ -256,7 +277,7 @@ export default function MerchantConfig() {
       const tiers: PromoTier[] = [];
       for (let idx = 0; idx < 20; idx++) { // 最多查20档
         try {
-          const res = await sdk.vault.getPromoTier(configParams.merchantId, idx);
+          const res = await sdk.vault.getPromoTier(merchantIdBigint, idx);
           if (!res || !res.minAmount) break;
           tiers.push({
             minAmount: res.minAmount?.toString() || '',
@@ -322,7 +343,7 @@ export default function MerchantConfig() {
               type="text"
               name="merchantId"
               className="form-input"
-              value={configParams.merchantId.toString()}
+              value={configParams.merchantId}
               onChange={handleInputChange}
               placeholder="输入商家ID"
               required

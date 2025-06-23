@@ -5,7 +5,7 @@ import { MerchantConfigManager } from '../../dist';
 
 interface MerchantParams {
   merchantName: string;
-  merchantId: bigint;
+  merchantId: string;
   operatorAddress: string;
 }
 
@@ -16,7 +16,7 @@ export default function MerchantManagement() {
   const [error, setError] = useState<string>('');
   const [merchantParams, setMerchantParams] = useState<MerchantParams>({
     merchantName: '',
-    merchantId: BigInt(''),
+    merchantId: '',
     operatorAddress: ''
   });
   const [mounted, setMounted] = useState(false);
@@ -36,7 +36,7 @@ export default function MerchantManagement() {
     const { name, value } = e.target;
     setMerchantParams(prev => ({
       ...prev,
-      [name]: BigInt(value)
+      [name]: value
     }));
   };
 
@@ -49,11 +49,18 @@ export default function MerchantManagement() {
       setError('请输入商家ID和操作员地址');
       return;
     }
+    let merchantIdBigint: bigint;
+    try {
+      merchantIdBigint = BigInt(merchantParams.merchantId);
+    } catch {
+      setError('商家ID必须为合法的数字或16进制字符串');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       const result = await merchantManager.setMerchantOperator(
-        merchantParams.merchantId,
+        merchantIdBigint,
         merchantParams.operatorAddress
       );
       setResult({ type: 'add_operator', result });
@@ -75,11 +82,18 @@ export default function MerchantManagement() {
       setError('请输入商户ID和操作员地址');
       return;
     }
+    let merchantIdBigint: bigint;
+    try {
+      merchantIdBigint = BigInt(merchantParams.merchantId);
+    } catch {
+      setError('商家ID必须为合法的数字或16进制字符串');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       const result = await merchantManager.setMerchantOperator(
-        merchantParams.merchantId,
+        merchantIdBigint,
         merchantParams.operatorAddress
       );
       setResult(result);
@@ -100,11 +114,18 @@ export default function MerchantManagement() {
       setError('请输入商家ID和操作员地址');
       return;
     }
+    let merchantIdBigint: bigint;
+    try {
+      merchantIdBigint = BigInt(merchantParams.merchantId);
+    } catch {
+      setError('商家ID必须为合法的数字或16进制字符串');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       const result = await merchantManager.checkMerchantOperator(
-        merchantParams.merchantId,
+        merchantIdBigint,
         merchantParams.operatorAddress
       );
       setResult({ type: 'check_permission', result });
@@ -155,7 +176,7 @@ export default function MerchantManagement() {
               type="text"
               name="merchantId"
               className="form-input"
-              value={merchantParams.merchantId.toString()}
+              value={merchantParams.merchantId}
               onChange={handleInputChange}
               placeholder="输入商家ID"
             />
