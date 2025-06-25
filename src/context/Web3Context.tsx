@@ -11,6 +11,7 @@ interface Web3ContextProps {
   connectWallet: () => Promise<void>;
   resetError: () => void;
   config: any;
+  setConfig: (cfg: any) => void;
 }
 
 const Web3Context = createContext<Web3ContextProps>({
@@ -22,6 +23,7 @@ const Web3Context = createContext<Web3ContextProps>({
   connectWallet: async () => {},
   resetError: () => {},
   config: {},
+  setConfig: () => {},
 });
 
 export const useWeb3 = () => useContext(Web3Context);
@@ -37,14 +39,20 @@ export const Web3Provider = ({ children }: Web3ProviderProps) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
 
-  // 这里请根据你的实际合约配置填写
-  const config = {
-    vaultContractAddress: '0x236dFEF2F00118d3A8Ddc9191B7Ed217a5318Ec9',
-    paymentContractAddress: '0x7Eaa7EB537587AfC84eDfCDF8C624848bf9985F3',
-    forwarderAddress: '0x1B2f0Ada16d1586273576668c39CACdC8abe72f3',
-  };
+  // config 支持从 localStorage 读取和保存
+  const [config, setConfig] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('delegate_config');
+      if (saved) return JSON.parse(saved);
+    }
+    return {
+      vaultContractAddress: '0x236dFEF2F00118d3A8Ddc9191B7Ed217a5318Ec9',
+      paymentContractAddress: '0x7Eaa7EB537587AfC84eDfCDF8C624848bf9985F3',
+      forwarderAddress: '0x1B2f0Ada16d1586273576668c39CACdC8abe72f3',
+    };
+  });
 
-  // 初始化 sdk
+  // config 变化时自动重建 sdk
   useEffect(() => {
     try {
       const instance = new Web3Delegate(config);
@@ -52,7 +60,14 @@ export const Web3Provider = ({ children }: Web3ProviderProps) => {
     } catch (e: any) {
       setError('SDK初始化失败: ' + (e.message || String(e)));
     }
-  }, []);
+  }, [config]);
+
+  // config 变化时自动保存到 localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('delegate_config', JSON.stringify(config));
+    }
+  }, [config]);
 
   // 连接钱包
   const connectWallet = useCallback(async () => {
@@ -85,12 +100,10 @@ export const Web3Provider = ({ children }: Web3ProviderProps) => {
     };
     const handleChainChanged = (chainId: string) => {
       setChainId(chainId);
-      // 可选：自动断开/重连
       setAddress('');
     };
     window.ethereum.on('accountsChanged', handleAccountsChanged);
     window.ethereum.on('chainChanged', handleChainChanged);
-    // 初始化时获取当前链ID
     window.ethereum.request({ method: 'eth_chainId' }).then(setChainId).catch(() => {});
     return () => {
       window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
@@ -101,7 +114,7 @@ export const Web3Provider = ({ children }: Web3ProviderProps) => {
   const resetError = () => setError('');
 
   return (
-    <Web3Context.Provider value={{ sdk, address, chainId, isConnecting, error, connectWallet, resetError, config }}>
+    <Web3Context.Provider value={{ sdk, address, chainId, isConnecting, error, connectWallet, resetError, config, setConfig }}>
       {children}
     </Web3Context.Provider>
   );

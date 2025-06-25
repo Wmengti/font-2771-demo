@@ -4,7 +4,7 @@ import Layout from '../components/Layout';
 import { useWeb3 } from '../context/Web3Context';
 
 export default function Home() {
-  const { sdk, address } = useWeb3();
+  const { sdk, address, config } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');

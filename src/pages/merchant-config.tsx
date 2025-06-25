@@ -110,7 +110,7 @@ interface PromoTier {
 }
 
 export default function MerchantConfig() {
-  const { sdk, address } = useWeb3();
+  const { sdk, address, config } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');

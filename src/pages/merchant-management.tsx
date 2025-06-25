@@ -10,7 +10,7 @@ interface MerchantParams {
 }
 
 export default function MerchantManagement() {
-  const { sdk, address } = useWeb3();
+  const { sdk, address, config } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -23,12 +23,6 @@ export default function MerchantManagement() {
   useEffect(() => { setMounted(true); }, []);
   if (!mounted) return null;
 
-  // config 与 Web3Context 保持一致
-  const config = {
-    vaultContractAddress: '0x236dFEF2F00118d3A8Ddc9191B7Ed217a5318Ec9',
-    paymentContractAddress: '0x7Eaa7EB537587AfC84eDfCDF8C624848bf9985F3',
-    forwarderAddress: '0x1B2f0Ada16d1586273576668c39CACdC8abe72f3',
-  };
   // 实例化商家管理器
   const merchantManager = new MerchantConfigManager(config);
 
