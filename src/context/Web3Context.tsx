@@ -45,11 +45,7 @@ export const Web3Provider = ({ children }: Web3ProviderProps) => {
       const saved = localStorage.getItem('delegate_config');
       if (saved) return JSON.parse(saved);
     }
-    return {
-      vaultContractAddress: '0x236dFEF2F00118d3A8Ddc9191B7Ed217a5318Ec9',
-      paymentContractAddress: '0x7Eaa7EB537587AfC84eDfCDF8C624848bf9985F3',
-      forwarderAddress: '0x1B2f0Ada16d1586273576668c39CACdC8abe72f3',
-    };
+    return {}; // 清除默认配置，改为空对象
   });
 
   // config 变化时自动重建 sdk
