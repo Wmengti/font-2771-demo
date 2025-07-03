@@ -23,7 +23,6 @@ export declare class RelayerService extends BlockchainService {
         token: string;
         to: string;
         amount: bigint;
-        gasFee: bigint;
         seq: bigint;
         from: string;
     }): Promise<ValidationResult>;
@@ -37,6 +36,8 @@ export declare class RelayerService extends BlockchainService {
         merchantId: bigint;
         amount: bigint;
         seq: bigint;
+        idx: bigint;
+        recipient: string;
         from: string;
         voucherId?: bigint;
         pointToUse?: bigint;

@@ -8,7 +8,6 @@ export interface TransferParams {
     to: string;
     amount: bigint;
     tokenAddress?: string;
-    gasFee?: bigint;
     seq?: bigint;
     contractAddress?: string;
     payer?: string;
@@ -53,7 +52,6 @@ export interface RelayerRequest {
     token: string;
     amount: bigint;
     seq: bigint;
-    gasFee?: bigint;
     consumerId?: string;
     merchantId?: bigint;
     voucherId?: bigint;

@@ -40,7 +40,7 @@ interface ConsumeParams {
 }
 
 export default function VaultOperations() {
-  const { sdk, address } = useWeb3();
+  const { sdk, address, config } = useWeb3();
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -113,7 +113,7 @@ export default function VaultOperations() {
     setError('');
     try {
       // 授权给UnifiedVault合约
-      const vaultAddress = '0x0dfe1ad373bfcc5b32d22d7da81cac97ef72d7da'; // UnifiedVault地址
+      const vaultAddress = config.vaultContractAddress || '';
       const txHash = await sdk.approveToken(
         depositParams.tokenAddress,
         vaultAddress,
@@ -232,7 +232,7 @@ export default function VaultOperations() {
     setError('');
     try {
       // 授权给UnifiedVault合约
-      const vaultAddress = '0x0dfe1ad373bfcc5b32d22d7da81cac97ef72d7da'; // UnifiedVault地址
+      const vaultAddress = config.vaultContractAddress || '';
       const txHash = await sdk.approveToken(
         consumeParams.tokenAddress,
         vaultAddress,
